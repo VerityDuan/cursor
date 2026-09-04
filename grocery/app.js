@@ -630,6 +630,8 @@ function renderList() {
     host.append(sec);
   }
 
+  $('#listTip').hidden = !shown.length;
+
   /* seasonings you already own */
   const fold = $('#staples');
   fold.innerHTML = '';
@@ -667,6 +669,11 @@ function renderList() {
 
 function itemRow(it) {
   const li = el('li', 'item' + (it.got ? ' is-got' : ''));
+  const row = el('div', 'row');
+  const behind = el('div', 'behind');
+  behind.append(el('span', null, 'Delete 删除'));
+  const face = el('div', 'face');
+  row.append(behind, face);
 
   const toggle = () => { it.got = !it.got; save(); renderList(); };
 
@@ -674,7 +681,7 @@ function itemRow(it) {
   tick.setAttribute('aria-pressed', it.got ? 'true' : 'false');
   tick.setAttribute('aria-label', (it.got ? 'Untick ' : 'Tick ') + it.name);
   tick.addEventListener('click', toggle);
-  li.append(tick);
+  face.append(tick);
 
   const body = btn('ibody');
   const nm = el('span', 'nm', it.name);
@@ -686,9 +693,9 @@ function itemRow(it) {
   if (it.note) bits.push(it.note);
   if (bits.length) body.append(el('span', 'sub', bits.join(' · ')));
   body.addEventListener('click', toggle);
-  li.append(body);
+  face.append(body);
 
-  if (it.qty) li.append(el('span', 'qtytag', it.qty));
+  face.append(it.qty ? el('span', 'qtytag', it.qty) : el('span', 'qtytag empty'));
 
   const more = btn('edit', '⋯');
   more.setAttribute('aria-label', 'Edit ' + it.name);
@@ -697,8 +704,54 @@ function itemRow(it) {
     panel.classList.toggle('open');
     if (panel.classList.contains('open') && !panel.childNodes.length) fillPanel(panel, it);
   });
-  li.append(more, panel);
+  face.append(more);
+  li.append(row, panel);
+  attachSwipe(li, face, it);
   return li;
+}
+
+/* Drag a row to the left past the halfway mark and it goes — with an Undo,
+   because a grocery list is not worth a confirm dialog. Vertical drags are
+   handed straight back to the page so the list still scrolls. */
+function attachSwipe(li, face, it) {
+  let sx = 0, sy = 0, dx = 0, tracking = false, axis = '', moved = false;
+  const settle = () => { face.style.transition = ''; face.style.transform = ''; li.classList.remove('swiping'); };
+
+  face.addEventListener('pointerdown', e => {
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+    sx = e.clientX; sy = e.clientY; dx = 0; tracking = true; axis = ''; moved = false;
+    face.style.transition = 'none';
+  });
+  face.addEventListener('pointermove', e => {
+    if (!tracking) return;
+    const mx = e.clientX - sx, my = e.clientY - sy;
+    if (!axis) {
+      if (Math.abs(mx) < 10 && Math.abs(my) < 10) return;
+      if (Math.abs(my) >= Math.abs(mx)) { tracking = false; settle(); return; }
+      axis = 'x';
+      li.classList.add('swiping');
+      try { face.setPointerCapture(e.pointerId); } catch (err) { /* older browsers */ }
+    }
+    dx = Math.max(-170, Math.min(0, mx));
+    if (dx < -6) moved = true;
+    face.style.transform = `translateX(${dx}px)`;
+  });
+  const release = () => {
+    if (!tracking) return;
+    tracking = false;
+    face.style.transition = 'transform .18s ease-out';
+    if (dx < -92) {
+      face.style.transform = 'translateX(-110%)';
+      setTimeout(() => removeItem(it.id, true), 150);
+    } else settle();
+  };
+  face.addEventListener('pointerup', release);
+  face.addEventListener('pointercancel', () => { tracking = false; settle(); });
+  /* a drag must not also read as a tap on the row underneath */
+  face.addEventListener('click', e => {
+    if (!moved) return;
+    e.stopPropagation(); e.preventDefault(); moved = false;
+  }, true);
 }
 
 function fillPanel(panel, it) {
@@ -715,7 +768,7 @@ function fillPanel(panel, it) {
   name.setAttribute('aria-label', 'Item name');
   name.addEventListener('change', () => {
     const v = name.value.trim();
-    if (!v) { removeItem(it.id); return; }
+    if (!v) { removeItem(it.id, true); return; }
     const { qty, name: n } = splitQty(v);
     it.name = n;
     if (qty) it.qty = qty;
@@ -772,14 +825,22 @@ function fillPanel(panel, it) {
   row('Note 备注', note);
 
   const del = btn('ghost danger', 'Remove from the list');
-  del.addEventListener('click', () => removeItem(it.id));
+  del.addEventListener('click', () => removeItem(it.id, true));
   panel.append(del);
 }
 
 function learn(it) { store.learned[normalize(it.name)] = { aisle: it.aisle, groups: it.groups.slice() }; }
-function removeItem(id) {
-  store.list.items = listItems().filter(i => i.id !== id);
+function removeItem(id, undoable) {
+  const items = listItems();
+  const at = items.findIndex(i => i.id === id);
+  if (at < 0) return;
+  const [gone] = items.splice(at, 1);
   save(); renderList();
+  if (!undoable) return;
+  toast(`Deleted ${gone.name}`, 'Undo', () => {
+    listItems().splice(Math.min(at, listItems().length), 0, gone);
+    save(); renderList();
+  });
 }
 
 /* ── the add bar ───────────────────────────────────────────── */

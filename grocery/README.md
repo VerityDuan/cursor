@@ -17,8 +17,10 @@ and add to a phone's home screen. Regenerate it with `node build.js`.
 
 One living list, not a new one every week.
 
-- **Tap a row** to tick it off. Tap **⋯** to edit it: name, how much, which
-  shop, which section, what it counts as, a note, or remove.
+- **Tap a row** to tick it off. **Swipe it left** to delete it — with an Undo
+  in the toast, because a grocery list isn't worth a confirm dialog. Tap **⋯**
+  to edit it: name, how much, which shop, which section, what it counts as, a
+  note, or remove.
 - **Shopping done ✓** records the run, clears every tick, and leaves the list
   standing for next time. There's an **Undo** in the toast if you hit it early.
 - Sections colour-code themselves and sort into the order you walk a shop.
