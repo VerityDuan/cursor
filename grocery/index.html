@@ -23,15 +23,6 @@
 
   <div class="stores" id="storeChips"></div>
 
-  <div class="addbar">
-    <div class="addrow">
-      <input id="addInput" type="text" autocomplete="off" enterkeyhint="done"
-             placeholder="苹果 · 2 lbs chicken · sesame noodles">
-      <button class="add" id="addBtn" type="button">Add</button>
-    </div>
-    <div class="suggests" id="suggests"></div>
-  </div>
-
   <div class="favs" id="favs"></div>
 
   <div class="progress">
@@ -50,6 +41,15 @@
 
   <div class="listfoot">
     <button class="ghost danger" id="emptyList" type="button">Delete these items</button>
+  </div>
+
+  <div class="addbar">
+    <div class="suggests" id="suggests"></div>
+    <div class="addrow">
+      <input id="addInput" type="text" autocomplete="off" enterkeyhint="done"
+             placeholder="苹果 · 2 lbs chicken · sesame noodles">
+      <button class="add" id="addBtn" type="button">Add</button>
+    </div>
   </div>
 
 </section>
@@ -182,6 +182,25 @@
   <button class="tab" data-view="meals" type="button"><b>Meals</b><i>每餐</i></button>
   <button class="tab" data-view="week" type="button"><b>Balance</b><i>均衡</i></button>
 </nav>
+
+<div class="sheet" id="sheet" hidden>
+  <div class="sheetback" id="sheetBack"></div>
+  <div class="sheetpanel" role="dialog" aria-modal="true" aria-labelledby="sheetTitle">
+    <div class="sheethead">
+      <div>
+        <b id="sheetTitle">—</b>
+        <i>What do you still need to buy?</i>
+      </div>
+      <button class="sheetclose" id="sheetClose" type="button" aria-label="Close">×</button>
+    </div>
+    <div class="sheetlist" id="sheetList"></div>
+    <div class="sheetfoot">
+      <button class="ghost" id="sheetAll" type="button">All</button>
+      <button class="ghost" id="sheetNone" type="button">None</button>
+      <button class="add" id="sheetAdd" type="button">Add</button>
+    </div>
+  </div>
+</div>
 
 <div class="toast" id="toast"></div>
 

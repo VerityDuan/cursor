@@ -12,6 +12,7 @@
   --r:        20px;
   --shadow:   0 2px 0 rgba(23,20,15,.06), 0 10px 24px rgba(23,20,15,.05);
   --tabh:     calc(60px + env(safe-area-inset-bottom, 0px));
+  --addh:     70px;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
@@ -59,7 +60,9 @@ button { cursor: pointer; }
   width: 40px; height: 40px; border-radius: 50%; border: 2px solid var(--line);
   background: var(--panel); font-size: 17px; line-height: 1;
 }
-main { max-width: 720px; margin: 0 auto; padding: 6px 14px calc(30px + var(--tabh)); }
+main { max-width: 720px; margin: 0 auto; padding: 6px 14px calc(24px + var(--tabh)); }
+/* only the list carries the bottom add bar, so only it reserves the room */
+#view-list.is-active { padding-bottom: var(--addh); }
 .view { display: none; }
 .view.is-active { display: block; }
 
@@ -136,10 +139,15 @@ input:focus, select:focus { outline: 2px solid var(--ink); outline-offset: -2px;
 .schip.on i { background: rgba(255,255,255,.28); color: #fff; }
 
 /* ── add bar ────────────────────────────────────────────── */
-.addbar { margin-bottom: 12px; }
-.addrow { display: flex; gap: 8px; }
+/* the add bar sits at the bottom, above the tabs, where your thumb is */
+.addbar {
+  position: fixed; left: 0; right: 0; bottom: var(--tabh); z-index: 25;
+  background: var(--bg); border-top: 2px solid var(--line);
+  padding: 9px 14px 11px;
+}
+.addrow { display: flex; gap: 8px; max-width: 720px; margin: 0 auto; }
 .addrow input {
-  flex: 1; min-width: 0; font-size: 16px; padding: 14px 16px;
+  flex: 1; min-width: 0; font-size: 16px; padding: 13px 16px;
   border-radius: 16px; background: var(--panel); font-weight: 600;
 }
 .add {
@@ -147,7 +155,7 @@ input:focus, select:focus { outline: 2px solid var(--ink); outline-offset: -2px;
   padding: 0 22px; border-radius: 16px; font-weight: 800; flex: none;
 }
 .add:active { transform: scale(.97); }
-.suggests { display: flex; gap: 7px; overflow-x: auto; margin-top: 9px; scrollbar-width: none; }
+.suggests { display: flex; gap: 7px; overflow-x: auto; margin: 0 auto 9px; max-width: 720px; scrollbar-width: none; }
 .suggests::-webkit-scrollbar { display: none; }
 .suggests:empty { display: none; }
 .sug {
@@ -415,3 +423,48 @@ input:focus, select:focus { outline: 2px solid var(--ink); outline-offset: -2px;
 @media (min-width: 700px) {
   h1.display { font-size: 32px; }
 }
+
+/* ── what do you need to buy? ───────────────────────────── */
+.sheet { position: fixed; inset: 0; z-index: 50; display: flex; align-items: flex-end; justify-content: center; }
+.sheet[hidden] { display: none; }
+.sheetback { position: absolute; inset: 0; background: rgba(23, 20, 15, .5); }
+.sheetpanel {
+  position: relative; width: 100%; max-width: 560px; max-height: 84vh;
+  display: flex; flex-direction: column;
+  background: var(--panel); border-radius: 24px 24px 0 0;
+  padding: 16px 14px calc(14px + env(safe-area-inset-bottom, 0px));
+  box-shadow: 0 -8px 40px rgba(0, 0, 0, .28);
+  animation: sheetup .2s ease-out;
+}
+@keyframes sheetup { from { transform: translateY(14px); opacity: .6; } }
+@media (prefers-reduced-motion: reduce) { .sheetpanel { animation: none; } }
+.sheethead { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; padding: 0 4px 10px; }
+.sheethead b { display: block; font-size: 19px; font-weight: 800; letter-spacing: -.02em; }
+.sheethead i { font-style: normal; font-size: 13px; color: var(--ink-soft); font-weight: 600; }
+.sheetclose {
+  width: 34px; height: 34px; border-radius: 50%; flex: none;
+  border: 2px solid var(--line); background: transparent; color: var(--ink-soft); font-size: 18px; line-height: 1;
+}
+.sheetlist { overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 2px 0; }
+.sline {
+  display: flex; align-items: center; gap: 11px; width: 100%; text-align: left;
+  border: 0; background: transparent; padding: 9px 6px; border-radius: 12px;
+}
+.sline + .sline { border-top: 1px solid var(--line); }
+.sbox {
+  width: 25px; height: 25px; border-radius: 9px; flex: none; position: relative;
+  border: 2.5px solid var(--line); background: var(--bg);
+}
+.sline.on .sbox { background: var(--c); border-color: var(--c); }
+.sline.on .sbox::after {
+  content: ""; position: absolute; left: 7px; top: 2px;
+  width: 6px; height: 12px; border: 2.5px solid #fff; border-top: 0; border-left: 0; transform: rotate(42deg);
+}
+.smid { min-width: 0; flex: 1; display: flex; flex-direction: column; }
+.smid b { font-size: 15px; font-weight: 700; }
+.smid i { font-style: normal; font-size: 11.5px; color: var(--ink-soft); font-weight: 600; }
+.sline:not(.on) .smid b { color: var(--ink-soft); }
+.sqty { font-size: 12px; font-weight: 800; color: var(--ink-soft); background: var(--bg); border-radius: 999px; padding: 3px 9px; }
+.sheetfoot { display: flex; gap: 8px; align-items: center; padding-top: 12px; border-top: 2px solid var(--line); }
+.sheetfoot .add { flex: 1; padding: 14px; border-radius: 16px; }
+.sheetfoot .add:disabled { background: var(--line); color: var(--ink-soft); }

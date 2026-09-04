@@ -17,6 +17,7 @@ and add to a phone's home screen. Regenerate it with `node build.js`.
 
 One living list, not a new one every week.
 
+- The **add bar sits at the bottom**, above the tabs, where your thumb is.
 - **Tap a row** to tick it off. **Swipe it left** to delete it — with an Undo
   in the toast, because a grocery list isn't worth a confirm dialog. Tap **⋯**
   to edit it: name, how much, which shop, which section, what it counts as, a
@@ -41,11 +42,17 @@ shops you actually bought something from.
 
 ## Your dishes
 
-The coloured buttons under the search box are yours: **sesame noodles ·
-tuna rice bowl · salmon soy bowl · sandwich · marinated eggs**. One tap puts
-the whole ingredient list in the basket, filed and de-duplicated. The same
-buttons sit under every meal so logging what you ate is one tap too. Star any
-other dish under **Setup** and it joins them.
+The coloured buttons at the top are yours: **sesame noodles · tuna rice bowl ·
+salmon soy bowl · sandwich · marinated eggs**. Tapping one asks *what do you
+still need to buy?* — the dish's ingredients as a checklist, seasonings
+already unticked because you own them, quantities and the other language's
+name on every line. Only what you tick goes on the list, and what you said you
+already had is remembered for that dish next time.
+
+Typing a dish name into the add bar opens the same checklist. The same buttons
+sit under every meal so logging what you ate is one tap too, and **＋** on a
+logged meal opens the checklist for it. Star any other dish under **Setup** and
+it joins them.
 
 ## Typing into it
 

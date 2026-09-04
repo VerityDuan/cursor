@@ -20,6 +20,7 @@
   --r:        20px;
   --shadow:   0 2px 0 rgba(23,20,15,.06), 0 10px 24px rgba(23,20,15,.05);
   --tabh:     calc(60px + env(safe-area-inset-bottom, 0px));
+  --addh:     70px;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
@@ -67,7 +68,9 @@ button { cursor: pointer; }
   width: 40px; height: 40px; border-radius: 50%; border: 2px solid var(--line);
   background: var(--panel); font-size: 17px; line-height: 1;
 }
-main { max-width: 720px; margin: 0 auto; padding: 6px 14px calc(30px + var(--tabh)); }
+main { max-width: 720px; margin: 0 auto; padding: 6px 14px calc(24px + var(--tabh)); }
+/* only the list carries the bottom add bar, so only it reserves the room */
+#view-list.is-active { padding-bottom: var(--addh); }
 .view { display: none; }
 .view.is-active { display: block; }
 
@@ -144,10 +147,15 @@ input:focus, select:focus { outline: 2px solid var(--ink); outline-offset: -2px;
 .schip.on i { background: rgba(255,255,255,.28); color: #fff; }
 
 /* ── add bar ────────────────────────────────────────────── */
-.addbar { margin-bottom: 12px; }
-.addrow { display: flex; gap: 8px; }
+/* the add bar sits at the bottom, above the tabs, where your thumb is */
+.addbar {
+  position: fixed; left: 0; right: 0; bottom: var(--tabh); z-index: 25;
+  background: var(--bg); border-top: 2px solid var(--line);
+  padding: 9px 14px 11px;
+}
+.addrow { display: flex; gap: 8px; max-width: 720px; margin: 0 auto; }
 .addrow input {
-  flex: 1; min-width: 0; font-size: 16px; padding: 14px 16px;
+  flex: 1; min-width: 0; font-size: 16px; padding: 13px 16px;
   border-radius: 16px; background: var(--panel); font-weight: 600;
 }
 .add {
@@ -155,7 +163,7 @@ input:focus, select:focus { outline: 2px solid var(--ink); outline-offset: -2px;
   padding: 0 22px; border-radius: 16px; font-weight: 800; flex: none;
 }
 .add:active { transform: scale(.97); }
-.suggests { display: flex; gap: 7px; overflow-x: auto; margin-top: 9px; scrollbar-width: none; }
+.suggests { display: flex; gap: 7px; overflow-x: auto; margin: 0 auto 9px; max-width: 720px; scrollbar-width: none; }
 .suggests::-webkit-scrollbar { display: none; }
 .suggests:empty { display: none; }
 .sug {
@@ -424,6 +432,51 @@ input:focus, select:focus { outline: 2px solid var(--ink); outline-offset: -2px;
   h1.display { font-size: 32px; }
 }
 
+/* ── what do you need to buy? ───────────────────────────── */
+.sheet { position: fixed; inset: 0; z-index: 50; display: flex; align-items: flex-end; justify-content: center; }
+.sheet[hidden] { display: none; }
+.sheetback { position: absolute; inset: 0; background: rgba(23, 20, 15, .5); }
+.sheetpanel {
+  position: relative; width: 100%; max-width: 560px; max-height: 84vh;
+  display: flex; flex-direction: column;
+  background: var(--panel); border-radius: 24px 24px 0 0;
+  padding: 16px 14px calc(14px + env(safe-area-inset-bottom, 0px));
+  box-shadow: 0 -8px 40px rgba(0, 0, 0, .28);
+  animation: sheetup .2s ease-out;
+}
+@keyframes sheetup { from { transform: translateY(14px); opacity: .6; } }
+@media (prefers-reduced-motion: reduce) { .sheetpanel { animation: none; } }
+.sheethead { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; padding: 0 4px 10px; }
+.sheethead b { display: block; font-size: 19px; font-weight: 800; letter-spacing: -.02em; }
+.sheethead i { font-style: normal; font-size: 13px; color: var(--ink-soft); font-weight: 600; }
+.sheetclose {
+  width: 34px; height: 34px; border-radius: 50%; flex: none;
+  border: 2px solid var(--line); background: transparent; color: var(--ink-soft); font-size: 18px; line-height: 1;
+}
+.sheetlist { overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 2px 0; }
+.sline {
+  display: flex; align-items: center; gap: 11px; width: 100%; text-align: left;
+  border: 0; background: transparent; padding: 9px 6px; border-radius: 12px;
+}
+.sline + .sline { border-top: 1px solid var(--line); }
+.sbox {
+  width: 25px; height: 25px; border-radius: 9px; flex: none; position: relative;
+  border: 2.5px solid var(--line); background: var(--bg);
+}
+.sline.on .sbox { background: var(--c); border-color: var(--c); }
+.sline.on .sbox::after {
+  content: ""; position: absolute; left: 7px; top: 2px;
+  width: 6px; height: 12px; border: 2.5px solid #fff; border-top: 0; border-left: 0; transform: rotate(42deg);
+}
+.smid { min-width: 0; flex: 1; display: flex; flex-direction: column; }
+.smid b { font-size: 15px; font-weight: 700; }
+.smid i { font-style: normal; font-size: 11.5px; color: var(--ink-soft); font-weight: 600; }
+.sline:not(.on) .smid b { color: var(--ink-soft); }
+.sqty { font-size: 12px; font-weight: 800; color: var(--ink-soft); background: var(--bg); border-radius: 999px; padding: 3px 9px; }
+.sheetfoot { display: flex; gap: 8px; align-items: center; padding-top: 12px; border-top: 2px solid var(--line); }
+.sheetfoot .add { flex: 1; padding: 14px; border-radius: 16px; }
+.sheetfoot .add:disabled { background: var(--line); color: var(--ink-soft); }
+
 </style>
 </head>
 <body>
@@ -441,15 +494,6 @@ input:focus, select:focus { outline: 2px solid var(--ink); outline-offset: -2px;
   <h1 class="display">Shop it, <em>tick it,</em><br>start again.</h1>
 
   <div class="stores" id="storeChips"></div>
-
-  <div class="addbar">
-    <div class="addrow">
-      <input id="addInput" type="text" autocomplete="off" enterkeyhint="done"
-             placeholder="苹果 · 2 lbs chicken · sesame noodles">
-      <button class="add" id="addBtn" type="button">Add</button>
-    </div>
-    <div class="suggests" id="suggests"></div>
-  </div>
 
   <div class="favs" id="favs"></div>
 
@@ -469,6 +513,15 @@ input:focus, select:focus { outline: 2px solid var(--ink); outline-offset: -2px;
 
   <div class="listfoot">
     <button class="ghost danger" id="emptyList" type="button">Delete these items</button>
+  </div>
+
+  <div class="addbar">
+    <div class="suggests" id="suggests"></div>
+    <div class="addrow">
+      <input id="addInput" type="text" autocomplete="off" enterkeyhint="done"
+             placeholder="苹果 · 2 lbs chicken · sesame noodles">
+      <button class="add" id="addBtn" type="button">Add</button>
+    </div>
   </div>
 
 </section>
@@ -601,6 +654,25 @@ input:focus, select:focus { outline: 2px solid var(--ink); outline-offset: -2px;
   <button class="tab" data-view="meals" type="button"><b>Meals</b><i>每餐</i></button>
   <button class="tab" data-view="week" type="button"><b>Balance</b><i>均衡</i></button>
 </nav>
+
+<div class="sheet" id="sheet" hidden>
+  <div class="sheetback" id="sheetBack"></div>
+  <div class="sheetpanel" role="dialog" aria-modal="true" aria-labelledby="sheetTitle">
+    <div class="sheethead">
+      <div>
+        <b id="sheetTitle">—</b>
+        <i>What do you still need to buy?</i>
+      </div>
+      <button class="sheetclose" id="sheetClose" type="button" aria-label="Close">×</button>
+    </div>
+    <div class="sheetlist" id="sheetList"></div>
+    <div class="sheetfoot">
+      <button class="ghost" id="sheetAll" type="button">All</button>
+      <button class="ghost" id="sheetNone" type="button">None</button>
+      <button class="add" id="sheetAdd" type="button">Add</button>
+    </div>
+  </div>
+</div>
 
 <div class="toast" id="toast"></div>
 
@@ -1445,6 +1517,7 @@ const blank = () => ({
     hideStaples: true,
     favourites: DEFAULT_FAVOURITES.slice(),
     store: 'all',
+    dishSkip: {},
   },
   learned: {}, list: { items: [] }, runs: [], meals: {},
 });
@@ -1459,6 +1532,7 @@ function normalise(raw) {
   s.settings = Object.assign(blank().settings, raw.settings);
   s.settings.targets = Object.assign(defaultTargets(), s.settings.targets);
   s.learned = s.learned || {};
+  s.settings.dishSkip = s.settings.dishSkip || {};
   s.meals = s.meals || {};
   s.runs = s.runs || [];
   s.list = s.list || { items: [] };
@@ -1812,11 +1886,7 @@ function renderList() {
     b.append(el('b', null, r.names[0]));
     const alt = r.names.find(x => hasCJK(x) !== hasCJK(r.names[0]));
     b.append(el('i', null, alt || `${r.ingredients.length} items`));
-    b.addEventListener('click', () => {
-      const res = addTyped(r.names[0], f);
-      save(); renderList();
-      toast(`${r.names[0]} → ${res.added.length} on the list`);
-    });
+    b.addEventListener('click', () => openSheet(r.id, r.ingredients));
     favs.append(b);
   });
 
@@ -2069,10 +2139,103 @@ function removeItem(id, undoable) {
   });
 }
 
+/* ── what do you actually need? ────────────────────────────
+   A dish knows its ingredients; only you know what is already in the
+   cupboard. Seasonings start unticked, everything else ticked, and whatever
+   you decide is remembered for that dish next time. */
+let sheetRows = [], sheetDish = '';
+
+function openSheet(dish, ingredients) {
+  const remembered = store.settings.dishSkip || {};
+  const known = Object.prototype.hasOwnProperty.call(remembered, dish);
+  const skip = new Set(known ? remembered[dish] : []);
+
+  sheetDish = dish;
+  sheetRows = ingredients.map(raw => {
+    const { qty, name } = splitQty(raw);
+    const cls = classify(name);
+    const id = cls.food ? cls.food.id : normalize(name);
+    const staple = (cls.aisle === 'pantry' || cls.aisle === 'spice') && !cls.groups.length;
+    return {
+      raw, name, qty, cls, staple,
+      onList: listItems().some(i => (i.foodId || normalize(i.name)) === id),
+      on: known ? !skip.has(raw) : !staple,
+    };
+  });
+
+  $('#sheetTitle').textContent = dish;
+  drawSheet();
+  $('#sheet').hidden = false;
+  document.body.style.overflow = 'hidden';
+}
+function closeSheet() {
+  $('#sheet').hidden = true;
+  document.body.style.overflow = '';
+}
+function drawSheet() {
+  const host = $('#sheetList');
+  host.innerHTML = '';
+  for (const r of sheetRows) {
+    const line = btn('sline' + (r.on ? ' on' : ''));
+    line.style.setProperty('--c', AISLE_BY_ID[r.cls.aisle].c);
+    const box = el('span', 'sbox');
+    line.append(box);
+    const mid = el('span', 'smid');
+    mid.append(el('b', null, r.name));
+    const bits = [];
+    const alt = otherName(r.cls.food, r.name);
+    if (alt) bits.push(alt);
+    if (r.onList) bits.push('already on the list');
+    else if (r.staple) bits.push('you probably have this');
+    if (bits.length) mid.append(el('i', null, bits.join(' · ')));
+    line.append(mid);
+    if (r.qty) line.append(el('span', 'sqty', r.qty));
+    line.addEventListener('click', () => { r.on = !r.on; drawSheet(); });
+    host.append(line);
+  }
+  const n = sheetRows.filter(r => r.on).length;
+  $('#sheetAdd').textContent = n ? `Add ${n}` : 'Add nothing';
+  $('#sheetAdd').disabled = !n;
+}
+$('#sheetBack').addEventListener('click', closeSheet);
+$('#sheetClose').addEventListener('click', closeSheet);
+$('#sheetAll').addEventListener('click', () => { sheetRows.forEach(r => { r.on = true; }); drawSheet(); });
+$('#sheetNone').addEventListener('click', () => { sheetRows.forEach(r => { r.on = false; }); drawSheet(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('#sheet').hidden) closeSheet(); });
+
+$('#sheetAdd').addEventListener('click', () => {
+  const take = sheetRows.filter(r => r.on);
+  if (!take.length) return;
+  for (const r of take) addToList(r.raw, sheetDish, store.settings.store);
+  /* remember what you said you already had */
+  store.settings.dishSkip[sheetDish] = sheetRows.filter(r => !r.on).map(r => r.raw);
+  save(); renderList(); closeSheet();
+  toast(`${take.length} on the list`);
+});
+
+/* a dish typed or tapped goes through the picker; anything else is an item */
+function dishFor(text) {
+  const recipe = matchRecipe(text);
+  if (recipe) return { dish: recipe.id, ingredients: recipe.ingredients };
+  const foods = improviseDish(text);
+  if (foods) return { dish: text, ingredients: foods.map(f => hasCJK(text) ? (f.zh[0] || f.en[0]) : f.en[0]) };
+  return null;
+}
+
 /* ── the add bar ───────────────────────────────────────────── */
 function submitAdd() {
   const input = $('#addInput');
-  const res = addTyped(input.value, store.settings.store);
+  const typed = input.value.trim();
+  if (!typed) return;
+
+  const dish = dishFor(typed);
+  if (dish) {
+    input.value = '';
+    renderSuggests('');
+    openSheet(dish.dish, dish.ingredients);
+    return;
+  }
+  const res = addTyped(typed, store.settings.store);
   if (!res) return;
   save();
   input.value = '';
@@ -2246,6 +2409,8 @@ function mealCard(dayK, m) {
     const shop = btn('esmall', '＋');
     shop.title = 'Send its ingredients to the list';
     shop.addEventListener('click', () => {
+      const dish = dishFor(e.text);
+      if (dish) return openSheet(dish.dish, dish.ingredients);
       const res = addTyped(e.text, store.settings.store);
       save(); renderList();
       toast(res && res.added.length ? `${res.added.length} on the list` : 'Nothing to add');

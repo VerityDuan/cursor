@@ -219,6 +219,7 @@ const blank = () => ({
     hideStaples: true,
     favourites: DEFAULT_FAVOURITES.slice(),
     store: 'all',
+    dishSkip: {},
   },
   learned: {}, list: { items: [] }, runs: [], meals: {},
 });
@@ -233,6 +234,7 @@ function normalise(raw) {
   s.settings = Object.assign(blank().settings, raw.settings);
   s.settings.targets = Object.assign(defaultTargets(), s.settings.targets);
   s.learned = s.learned || {};
+  s.settings.dishSkip = s.settings.dishSkip || {};
   s.meals = s.meals || {};
   s.runs = s.runs || [];
   s.list = s.list || { items: [] };
@@ -586,11 +588,7 @@ function renderList() {
     b.append(el('b', null, r.names[0]));
     const alt = r.names.find(x => hasCJK(x) !== hasCJK(r.names[0]));
     b.append(el('i', null, alt || `${r.ingredients.length} items`));
-    b.addEventListener('click', () => {
-      const res = addTyped(r.names[0], f);
-      save(); renderList();
-      toast(`${r.names[0]} → ${res.added.length} on the list`);
-    });
+    b.addEventListener('click', () => openSheet(r.id, r.ingredients));
     favs.append(b);
   });
 
@@ -843,10 +841,103 @@ function removeItem(id, undoable) {
   });
 }
 
+/* ── what do you actually need? ────────────────────────────
+   A dish knows its ingredients; only you know what is already in the
+   cupboard. Seasonings start unticked, everything else ticked, and whatever
+   you decide is remembered for that dish next time. */
+let sheetRows = [], sheetDish = '';
+
+function openSheet(dish, ingredients) {
+  const remembered = store.settings.dishSkip || {};
+  const known = Object.prototype.hasOwnProperty.call(remembered, dish);
+  const skip = new Set(known ? remembered[dish] : []);
+
+  sheetDish = dish;
+  sheetRows = ingredients.map(raw => {
+    const { qty, name } = splitQty(raw);
+    const cls = classify(name);
+    const id = cls.food ? cls.food.id : normalize(name);
+    const staple = (cls.aisle === 'pantry' || cls.aisle === 'spice') && !cls.groups.length;
+    return {
+      raw, name, qty, cls, staple,
+      onList: listItems().some(i => (i.foodId || normalize(i.name)) === id),
+      on: known ? !skip.has(raw) : !staple,
+    };
+  });
+
+  $('#sheetTitle').textContent = dish;
+  drawSheet();
+  $('#sheet').hidden = false;
+  document.body.style.overflow = 'hidden';
+}
+function closeSheet() {
+  $('#sheet').hidden = true;
+  document.body.style.overflow = '';
+}
+function drawSheet() {
+  const host = $('#sheetList');
+  host.innerHTML = '';
+  for (const r of sheetRows) {
+    const line = btn('sline' + (r.on ? ' on' : ''));
+    line.style.setProperty('--c', AISLE_BY_ID[r.cls.aisle].c);
+    const box = el('span', 'sbox');
+    line.append(box);
+    const mid = el('span', 'smid');
+    mid.append(el('b', null, r.name));
+    const bits = [];
+    const alt = otherName(r.cls.food, r.name);
+    if (alt) bits.push(alt);
+    if (r.onList) bits.push('already on the list');
+    else if (r.staple) bits.push('you probably have this');
+    if (bits.length) mid.append(el('i', null, bits.join(' · ')));
+    line.append(mid);
+    if (r.qty) line.append(el('span', 'sqty', r.qty));
+    line.addEventListener('click', () => { r.on = !r.on; drawSheet(); });
+    host.append(line);
+  }
+  const n = sheetRows.filter(r => r.on).length;
+  $('#sheetAdd').textContent = n ? `Add ${n}` : 'Add nothing';
+  $('#sheetAdd').disabled = !n;
+}
+$('#sheetBack').addEventListener('click', closeSheet);
+$('#sheetClose').addEventListener('click', closeSheet);
+$('#sheetAll').addEventListener('click', () => { sheetRows.forEach(r => { r.on = true; }); drawSheet(); });
+$('#sheetNone').addEventListener('click', () => { sheetRows.forEach(r => { r.on = false; }); drawSheet(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('#sheet').hidden) closeSheet(); });
+
+$('#sheetAdd').addEventListener('click', () => {
+  const take = sheetRows.filter(r => r.on);
+  if (!take.length) return;
+  for (const r of take) addToList(r.raw, sheetDish, store.settings.store);
+  /* remember what you said you already had */
+  store.settings.dishSkip[sheetDish] = sheetRows.filter(r => !r.on).map(r => r.raw);
+  save(); renderList(); closeSheet();
+  toast(`${take.length} on the list`);
+});
+
+/* a dish typed or tapped goes through the picker; anything else is an item */
+function dishFor(text) {
+  const recipe = matchRecipe(text);
+  if (recipe) return { dish: recipe.id, ingredients: recipe.ingredients };
+  const foods = improviseDish(text);
+  if (foods) return { dish: text, ingredients: foods.map(f => hasCJK(text) ? (f.zh[0] || f.en[0]) : f.en[0]) };
+  return null;
+}
+
 /* ── the add bar ───────────────────────────────────────────── */
 function submitAdd() {
   const input = $('#addInput');
-  const res = addTyped(input.value, store.settings.store);
+  const typed = input.value.trim();
+  if (!typed) return;
+
+  const dish = dishFor(typed);
+  if (dish) {
+    input.value = '';
+    renderSuggests('');
+    openSheet(dish.dish, dish.ingredients);
+    return;
+  }
+  const res = addTyped(typed, store.settings.store);
   if (!res) return;
   save();
   input.value = '';
@@ -1020,6 +1111,8 @@ function mealCard(dayK, m) {
     const shop = btn('esmall', '＋');
     shop.title = 'Send its ingredients to the list';
     shop.addEventListener('click', () => {
+      const dish = dishFor(e.text);
+      if (dish) return openSheet(dish.dish, dish.ingredients);
       const res = addTyped(e.text, store.settings.store);
       save(); renderList();
       toast(res && res.added.length ? `${res.added.length} on the list` : 'Nothing to add');
