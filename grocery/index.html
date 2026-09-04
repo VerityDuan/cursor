@@ -3,20 +3,15 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#f6f6f4">
-<title>菜篮 Basket — weekly grocery list &amp; balance</title>
+<meta name="theme-color" content="#FFF6EA">
+<title>菜篮 Basket — grocery list &amp; weekly balance</title>
 <link rel="stylesheet" href="styles.css">
 </head>
 <body>
 
 <header class="topbar">
   <div class="brand">菜篮 <span>Basket</span></div>
-  <nav class="tabs" id="tabs">
-    <button class="tab is-active" data-view="list"><b>List</b><i>清单</i></button>
-    <button class="tab" data-view="meals"><b>Meals</b><i>每餐</i></button>
-    <button class="tab" data-view="week"><b>Balance</b><i>均衡</i></button>
-    <button class="tab" data-view="setup"><b>Setup</b><i>设置</i></button>
-  </nav>
+  <button class="gear" id="gearBtn" type="button" aria-label="Settings">⚙</button>
 </header>
 
 <main>
@@ -24,42 +19,36 @@
 <!-- ─────────────────────────── LIST ─────────────────────────── -->
 <section id="view-list" class="view is-active">
 
-  <div class="weeknav">
-    <button class="icon" id="weekPrev" title="Previous week">&larr;</button>
-    <span class="weeklabel" id="weekLabel">—</span>
-    <button class="icon" id="weekNext" title="Next week">&rarr;</button>
-    <div class="spacer"></div>
-    <button class="chip" id="goThisWeek">This week 本周</button>
-  </div>
+  <h1 class="display">Shop it, <em>tick it,</em><br>start again.</h1>
+
+  <div class="stores" id="storeChips"></div>
 
   <div class="addbar">
     <div class="addrow">
       <input id="addInput" type="text" autocomplete="off" enterkeyhint="done"
-             placeholder="番茄炒蛋 · 2 lbs chicken · 苹果 · spaghetti bolognese">
-      <button class="add" id="addBtn">Add</button>
+             placeholder="苹果 · 2 lbs chicken · sesame noodles">
+      <button class="add" id="addBtn" type="button">Add</button>
     </div>
-    <p class="addhint" id="addHint">Type food and it files itself. Type a dish — in English or 中文 — and its ingredients arrive.</p>
     <div class="suggests" id="suggests"></div>
   </div>
 
-  <div class="card">
-    <div class="cardhead">
-      <h2>This week&rsquo;s list <span class="zh">本周清单</span></h2>
-      <div class="cardhead-actions">
-        <button class="ghost" id="carryOver" title="Bring last week's unbought items forward">Carry over</button>
-        <button class="ghost" id="copyList">Copy</button>
-      </div>
-    </div>
-    <div class="listmeta">
-      <div class="bar"><i id="listBar"></i></div>
-      <span class="muted" id="listCount">nothing on the list yet</span>
-    </div>
-    <div id="sections"></div>
-    <div class="staples" id="staples"></div>
-    <div class="cardhead-actions listfoot">
-      <button class="ghost" id="clearGot">Clear what&rsquo;s bought</button>
-      <button class="ghost danger" id="clearAll">Clear the list</button>
-    </div>
+  <div class="favs" id="favs"></div>
+
+  <div class="progress">
+    <div class="pnum"><b id="listCount">—</b><i id="listWhere"></i></div>
+    <div class="bar"><i id="listBar"></i></div>
+    <button class="ghost" id="copyList" type="button">Copy</button>
+  </div>
+
+  <div id="sections"></div>
+  <div class="staples" id="staples"></div>
+
+  <button class="bigdone" id="doneBtn" type="button" hidden>Shopping done ✓</button>
+  <p class="donehint">Ticks clear, the sections and everything in them stay.</p>
+  <div class="runs" id="runs"></div>
+
+  <div class="listfoot">
+    <button class="ghost danger" id="emptyList" type="button">Delete these items</button>
   </div>
 
 </section>
@@ -68,11 +57,11 @@
 <section id="view-meals" class="view">
 
   <div class="weeknav">
-    <button class="icon" id="mWeekPrev" title="Previous week">&larr;</button>
+    <button class="icon" id="mWeekPrev" type="button" aria-label="Previous week">&larr;</button>
     <span class="weeklabel" id="mWeekLabel">—</span>
-    <button class="icon" id="mWeekNext" title="Next week">&rarr;</button>
+    <button class="icon" id="mWeekNext" type="button" aria-label="Next week">&rarr;</button>
     <div class="spacer"></div>
-    <button class="chip" id="goToday">Today 今天</button>
+    <button class="chip" id="goToday" type="button">Today 今天</button>
   </div>
 
   <div class="daychips" id="dayChips"></div>
@@ -84,13 +73,9 @@
 
   <div id="mealList"></div>
 
-  <div class="card">
-    <div class="cardhead"><h2>Shopping <span class="zh">采购</span></h2></div>
-    <p class="sub">Everything written on this day, turned into ingredients on this week&rsquo;s list.</p>
-    <div class="cardhead-actions listfoot">
-      <button class="ghost" id="dayToList">Send this day to the list</button>
-      <button class="ghost" id="copyDay">Copy the day</button>
-    </div>
+  <div class="card flat">
+    <p class="sub">Everything written on this day, turned into ingredients on the list.</p>
+    <button class="wide" id="dayToList" type="button">Send this day to the list</button>
   </div>
 
 </section>
@@ -99,17 +84,15 @@
 <section id="view-week" class="view">
 
   <div class="weeknav">
-    <button class="icon" id="bWeekPrev" title="Previous week">&larr;</button>
+    <button class="icon" id="bWeekPrev" type="button" aria-label="Previous week">&larr;</button>
     <span class="weeklabel" id="bWeekLabel">—</span>
-    <button class="icon" id="bWeekNext" title="Next week">&rarr;</button>
+    <button class="icon" id="bWeekNext" type="button" aria-label="Next week">&rarr;</button>
     <div class="spacer"></div>
-    <button class="chip" id="bThisWeek">This week 本周</button>
+    <button class="chip" id="bThisWeek" type="button">This week 本周</button>
   </div>
 
   <div class="card scorecard">
-    <div class="score">
-      <div class="scorering" id="scoreRing"><span id="scorePct">0%</span></div>
-    </div>
+    <div class="scorering" id="scoreRing"><span id="scorePct">0%</span></div>
     <div class="scoretext">
       <h1 id="scoreHeadline">—</h1>
       <p class="sub" id="scoreSub"></p>
@@ -117,17 +100,17 @@
   </div>
 
   <div class="card">
-    <div class="cardhead"><h2>Every food group <span class="zh">六大类</span></h2></div>
+    <div class="cardhead"><h2>Every food group <i>六大类</i></h2></div>
     <div class="cats" id="balanceGroups"></div>
   </div>
 
   <div class="card">
-    <div class="cardhead"><h2>The week, day by day <span class="zh">每日</span></h2></div>
+    <div class="cardhead"><h2>Day by day <i>每日</i></h2></div>
     <div class="heat" id="balanceGrid"></div>
   </div>
 
   <div class="card">
-    <div class="cardhead"><h2>Every meal <span class="zh">每餐</span></h2></div>
+    <div class="cardhead"><h2>Every meal <i>每餐</i></h2></div>
     <p class="sub">A meal is full when it carries vegetables, protein and a grain.</p>
     <div class="heat" id="mealMatrix"></div>
     <div class="mealstats" id="mealStats"></div>
@@ -135,8 +118,8 @@
 
   <div class="card advice">
     <div class="cardhead">
-      <h2>What to fix <span class="zh">下周建议</span></h2>
-      <div class="cardhead-actions"><button class="ghost" id="copyReport">Copy report</button></div>
+      <h2>What to fix <i>下周</i></h2>
+      <button class="ghost" id="copyReport" type="button">Copy report</button>
     </div>
     <ol class="advicelist" id="adviceList"></ol>
   </div>
@@ -146,43 +129,58 @@
 <!-- ─────────────────────────── SETUP ────────────────────────── -->
 <section id="view-setup" class="view">
 
+  <div class="weeknav">
+    <button class="icon" id="setupBack" type="button" aria-label="Back">&larr;</button>
+    <span class="weeklabel">Setup 设置</span>
+  </div>
+
   <div class="card">
     <div class="cardhead">
-      <h2>Daily targets <span class="zh">每日目标</span></h2>
-      <div class="cardhead-actions"><button class="ghost" id="resetTargets">Reset</button></div>
+      <h2>Your dishes <i>常做的菜</i></h2>
+    </div>
+    <p class="sub">Starred dishes become the coloured buttons on the list and under every meal.</p>
+    <div class="dishlist" id="dishList"></div>
+  </div>
+
+  <div class="card">
+    <div class="cardhead">
+      <h2>Daily targets <i>每日目标</i></h2>
+      <button class="ghost" id="resetTargets" type="button">Reset</button>
     </div>
     <p class="sub">Servings a day. The weekly goal is seven times these.</p>
     <div class="goals" id="targetInputs"></div>
   </div>
 
   <div class="card">
-    <div class="cardhead"><h2>Teach it <span class="zh">自定义分类</span></h2></div>
-    <p class="sub">Anything it filed under <b>Other</b> is listed here. Give it a section and its food groups once and it remembers.</p>
+    <div class="cardhead"><h2>Finished shops <i>购物记录</i></h2></div>
+    <div id="runHistory"></div>
+  </div>
+
+  <div class="card">
+    <div class="cardhead"><h2>Teach it <i>自定义分类</i></h2></div>
+    <p class="sub">Anything filed under <b>Other</b> shows up here. Give it a section and its food groups once and it remembers.</p>
     <div id="teachList"></div>
   </div>
 
   <div class="card">
-    <div class="cardhead"><h2>What it knows <span class="zh">词库</span></h2></div>
+    <div class="cardhead"><h2>Backup <i>备份</i></h2></div>
     <p class="sub" id="lexStats">—</p>
-    <details>
-      <summary>The dishes it can shop for</summary>
-      <div class="dishlist" id="dishList"></div>
-    </details>
-  </div>
-
-  <div class="card">
-    <div class="cardhead"><h2>Backup <span class="zh">备份</span></h2></div>
-    <p class="sub">Everything lives in this browser only. Export now and then.</p>
     <div class="cardhead-actions">
-      <button class="ghost" id="exportData">Export JSON</button>
+      <button class="ghost" id="exportData" type="button">Export JSON</button>
       <label class="ghost filelabel">Import JSON<input type="file" id="importData" accept="application/json" hidden></label>
-      <button class="ghost danger" id="wipeData">Erase everything</button>
+      <button class="ghost danger" id="wipeData" type="button">Erase everything</button>
     </div>
   </div>
 
 </section>
 
 </main>
+
+<nav class="tabs" id="tabs">
+  <button class="tab is-active" data-view="list" type="button"><b>List</b><i>清单</i></button>
+  <button class="tab" data-view="meals" type="button"><b>Meals</b><i>每餐</i></button>
+  <button class="tab" data-view="week" type="button"><b>Balance</b><i>均衡</i></button>
+</nav>
 
 <div class="toast" id="toast"></div>
 

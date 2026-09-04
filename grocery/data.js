@@ -12,23 +12,56 @@
 
 /* ── aisles, in the order you walk the shop ─────────────────── */
 const AISLES = [
-  { id: 'fruit',   en: 'Fruit',             zh: '水果' },
-  { id: 'veg',     en: 'Vegetables',        zh: '蔬菜' },
-  { id: 'arom',    en: 'Herbs & aromatics', zh: '葱姜蒜香草' },
-  { id: 'meat',    en: 'Meat & poultry',    zh: '肉类' },
-  { id: 'sea',     en: 'Seafood',           zh: '海鲜水产' },
-  { id: 'dairy',   en: 'Eggs & dairy',      zh: '蛋 · 奶制品' },
-  { id: 'soy',     en: 'Tofu & soy',        zh: '豆制品' },
-  { id: 'grain',   en: 'Grains & noodles',  zh: '米面主食' },
-  { id: 'bake',    en: 'Bakery',            zh: '面包烘焙' },
-  { id: 'bean',    en: 'Beans & nuts',      zh: '干豆坚果' },
-  { id: 'pantry',  en: 'Pantry & sauces',   zh: '调料酱汁' },
-  { id: 'spice',   en: 'Spices & dry goods',zh: '香料干货' },
-  { id: 'frozen',  en: 'Frozen',            zh: '冷冻' },
-  { id: 'drink',   en: 'Drinks',            zh: '饮品' },
-  { id: 'home',    en: 'Household',         zh: '家居日用' },
-  { id: 'other',   en: 'Other',             zh: '其他' },
+  { id: 'fruit',   en: 'Fruit',             zh: '水果',      c: '#FF6B6B' },
+  { id: 'veg',     en: 'Vegetables',        zh: '蔬菜',      c: '#3FB27F' },
+  { id: 'arom',    en: 'Herbs & aromatics', zh: '葱姜蒜',    c: '#8CB800' },
+  { id: 'meat',    en: 'Meat & poultry',    zh: '肉类',      c: '#FF7BA0' },
+  { id: 'sea',     en: 'Seafood',           zh: '海鲜',      c: '#3FA7DC' },
+  { id: 'dairy',   en: 'Eggs & dairy',      zh: '蛋 · 奶',   c: '#F0B429' },
+  { id: 'soy',     en: 'Tofu & soy',        zh: '豆制品',    c: '#9B87E0' },
+  { id: 'grain',   en: 'Grains & noodles',  zh: '米面',      c: '#F08A3C' },
+  { id: 'bake',    en: 'Bakery',            zh: '面包',      c: '#C08552' },
+  { id: 'bean',    en: 'Beans & nuts',      zh: '豆 · 坚果', c: '#A0785A' },
+  { id: 'pantry',  en: 'Pantry & sauces',   zh: '调料',      c: '#2FB5A6' },
+  { id: 'spice',   en: 'Spices & dry',      zh: '香料干货',  c: '#E4633C' },
+  { id: 'frozen',  en: 'Frozen',            zh: '冷冻',      c: '#4EC3E8' },
+  { id: 'drink',   en: 'Drinks',            zh: '饮品',      c: '#8E7CF0' },
+  { id: 'home',    en: 'Household',         zh: '日用',      c: '#8E959B' },
+  { id: 'other',   en: 'Other',             zh: '其他',      c: '#A8AEB4' },
 ];
+
+/* ── where you buy it ───────────────────────────────────────
+   Mostly Safeway, T&T for the Asian half of the pantry, Lina's for the
+   Italian end. Every item carries its own store and can be moved. */
+const STORES = [
+  { id: 'safeway', name: 'Safeway', zh: '', c: '#D2372E' },
+  { id: 'tnt',     name: 'T&T',     zh: '大统华', c: '#E8830C' },
+  { id: 'linas',   name: "Lina's",  zh: '意式', c: '#2F9E44' },
+  { id: 'any',     name: 'Anywhere', zh: '哪都行', c: '#8E959B' },
+];
+const DEFAULT_STORE = 'safeway';
+
+/* foods worth a special trip — everything unlisted is Safeway */
+const STORE_OF = {};
+for (const id of ('soy sauce,light soy sauce|dark soy sauce|oyster sauce|black vinegar|cooking wine,shaoxing wine|' +
+  'sesame oil|doubanjiang,chili bean paste|sweet bean sauce|hoisin sauce|chili oil|fish sauce|fermented black beans|' +
+  'fermented tofu|pickled chili|sesame paste,tahini|mirin|sichuan peppercorn|star anise|five spice powder|' +
+  'thirteen spice|dried chili|dried shiitake|goji berry|chicken bouillon|rock sugar|cornstarch,corn starch|' +
+  'tofu|firm tofu|silken tofu|fried tofu puff|dried tofu|tofu skin|soy milk|edamame|' +
+  'rice noodles|glass noodles,vermicelli|ramen|udon|noodles,noodle|dumpling wrappers|wonton wrappers|' +
+  'spring roll wrappers|glutinous rice,sticky rice|jasmine rice|frozen dumplings|steamed bun,mantou|' +
+  'napa cabbage|bok choy,pak choi|baby bok choy|choy sum|chinese broccoli,gai lan|chinese chives|garlic sprout,garlic scape|' +
+  'lotus root|bamboo shoot|water chestnut|taro|chinese yam|daikon,white radish|bitter melon|winter melon|' +
+  'luffa,silk squash|wood ear|enoki|king oyster mushroom|oyster mushroom|shiitake|bean sprout|pea shoot|' +
+  'amaranth greens|celtuce|seaweed,nori|kelp|pickled mustard greens|preserved vegetable|' +
+  'century egg|salted duck egg|quail egg|dried shrimp|fish ball|squid|eel|pork belly|pork ribs|beef brisket|' +
+  'chicken feet|tripe|lychee|longan|dragon fruit|persimmon|milk tea').split('|')) {
+  STORE_OF[id.split(',')[0]] = 'tnt';
+}
+for (const id of ('parmesan|mozzarella|prosciutto|salami|olive|olive oil|basil|oregano|pasta,spaghetti|penne|' +
+  'lasagna sheets|pine nut|canned tomatoes|tomato paste|breadcrumbs|focaccia|cream cheese').split('|')) {
+  STORE_OF[id.split(',')[0]] = 'linas';
+}
 
 /* ── the six things a balanced day needs ────────────────────── */
 const GROUPS = [
@@ -84,7 +117,7 @@ const FOODS = [
   ['apricot', '杏,杏子', 'fruit', 'fruit'],
   ['fig', '无花果', 'fruit', 'fruit'],
   ['coconut', '椰子', 'fruit', 'fat'],
-  ['avocado', '牛油果,鳄梨', 'fruit', 'fruit fat'],
+  ['avocado', '牛油果,鳄梨', 'fruit', 'fat'],   /* bought as fruit, eaten as a fat */
   ['red date,jujube', '红枣,大枣', 'fruit', 'fruit'],
   ['raisin', '葡萄干', 'fruit', 'fruit'],
   ['dried cranberry', '蔓越莓干', 'fruit', 'fruit'],
@@ -152,6 +185,7 @@ const FOODS = [
   ['seaweed,nori', '紫菜,海苔', 'veg', 'veg'],
   ['kelp', '海带', 'veg', 'veg'],
   ['pickled mustard greens', '酸菜', 'veg', 'veg'],
+  ['pickle,dill pickle', '酸黄瓜', 'veg', 'veg'],
   ['preserved vegetable', '榨菜,梅干菜', 'veg', 'veg'],
   ['olive', '橄榄', 'veg', 'fat'],
 
@@ -194,6 +228,9 @@ const FOODS = [
   ['bacon', '培根', 'meat', 'protein'],
   ['sausage', '香肠,腊肠,烤肠', 'meat', 'protein'],
   ['ham', '火腿', 'meat', 'protein'],
+  ['deli turkey,turkey slices', '火鸡片', 'meat', 'protein'],
+  ['prosciutto', '意式火腿', 'meat', 'protein'],
+  ['salami', '萨拉米', 'meat', 'protein'],
   ['pork liver', '猪肝', 'meat', 'protein'],
   ['tripe', '牛肚,毛肚', 'meat', 'protein'],
   ['meatball', '肉丸,丸子', 'meat', 'protein'],
@@ -201,7 +238,7 @@ const FOODS = [
   /* seafood */
   ['fish', '鱼', 'sea', 'protein'],
   ['salmon', '三文鱼,鲑鱼', 'sea', 'protein fat'],
-  ['tuna', '金枪鱼,吞拿鱼', 'sea', 'protein'],
+  ['tuna,canned tuna', '金枪鱼,吞拿鱼,金枪鱼罐头', 'sea', 'protein'],
   ['cod', '鳕鱼', 'sea', 'protein'],
   ['sea bass', '鲈鱼', 'sea', 'protein'],
   ['tilapia', '罗非鱼', 'sea', 'protein'],
@@ -283,6 +320,7 @@ const FOODS = [
   ['bagel', '贝果', 'bake', 'grain'],
   ['croissant', '可颂,牛角包', 'bake', 'grain fat'],
   ['pita', '皮塔饼', 'bake', 'grain'],
+  ['focaccia', '佛卡夏', 'bake', 'grain'],
   ['cake', '蛋糕', 'bake', 'grain'],
   ['scallion pancake', '葱油饼', 'bake', 'grain'],
 
@@ -332,6 +370,8 @@ const FOODS = [
   ['mayonnaise', '蛋黄酱,沙拉酱', 'pantry', ''],
   ['mustard', '芥末', 'pantry', ''],
   ['fish sauce', '鱼露', 'pantry', ''],
+  ['mirin', '味淋', 'pantry', ''],
+  ['furikake', '香松', 'pantry', ''],
   ['curry paste,curry sauce', '咖喱块,咖喱酱', 'pantry', ''],
   ['tomato paste', '番茄膏', 'pantry', ''],
   ['canned tomatoes', '番茄罐头', 'pantry', 'veg'],
@@ -490,6 +530,18 @@ const RECIPES = [
   ['蒜蓉粉丝蒸虾,steamed shrimp with garlic vermicelli',
    '500克 虾; 粉丝; 大蒜; 生抽; 葱'],
 
+  /* the regulars */
+  ['sesame noodles,芝麻拌面,麻酱面,芝麻面',
+   '400g noodles; 芝麻酱; 生抽; 陈醋; 辣椒油; 香油; 大蒜; 葱; 1 黄瓜; 花生; 白糖'],
+  ['tuna rice bowl,金枪鱼饭,吞拿鱼饭',
+   '2 canned tuna; 2杯 rice; 1 黄瓜; 1 牛油果; 蛋黄酱; 辣椒酱; 紫菜; 芝麻; 葱; 生抽'],
+  ['salmon soy bowl,三文鱼饭,酱油三文鱼',
+   '2 salmon; 2杯 rice; 生抽; 味淋; 香油; 1 牛油果; 1 黄瓜; 毛豆; 紫菜; 葱; 芝麻'],
+  ['sandwich,三明治',
+   'bread; deli turkey; cheese; lettuce; 1 tomato; 1 牛油果; 蛋黄酱; mustard; pickle'],
+  ['marinated eggs,卤蛋,溏心蛋,酱油蛋',
+   '6 鸡蛋; 生抽; 味淋; 白糖; 大蒜; 葱; 干辣椒'],
+
   /* western + everyday */
   ['spaghetti bolognese,bolognese,肉酱意面',
    '400g pasta; 500g ground beef; 1 onion; 2 carrot; celery; canned tomatoes; tomato paste; garlic; olive oil; parmesan'],
@@ -558,3 +610,9 @@ const RECIPES = [
   ['smoothie,奶昔',
    'banana; frozen berries; yogurt; oats; honey; milk'],
 ];
+
+/* ── your dishes, as buttons ────────────────────────────────
+   The default set is the five you cook; star any other dish under Setup and
+   it joins them. */
+const DEFAULT_FAVOURITES = ['sesame noodles', 'tuna rice bowl', 'salmon soy bowl', 'sandwich', 'marinated eggs'];
+const FAV_COLORS = ['#F0B429', '#FF6B6B', '#FF7BA0', '#3FA7DC', '#9B87E0', '#3FB27F', '#F08A3C', '#2FB5A6'];

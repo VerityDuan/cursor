@@ -77,7 +77,9 @@ bars, reports and advice all follow from it.
 
 ## Also here
 
-[`grocery/`](grocery/) — **菜篮 Basket**, a weekly grocery list for a phone:
-items file themselves into aisles, a dish written in English or 中文 turns into
-its ingredients, and a weekly record shows whether every meal actually carried
-vegetables, protein and a grain. Same idea, same shape, no build step.
+[`grocery/`](grocery/) — **菜篮 Basket**, a grocery list for a phone: coloured
+sections that sort themselves, one tap to tick something off, a Shopping done
+button that clears the ticks and keeps the list, a shop filter for Safeway /
+T&T / Lina's, and your own dishes as one-tap buttons that turn into
+ingredients. A weekly record shows whether every meal actually carried
+vegetables, protein and a grain. No build step.
