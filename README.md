@@ -74,3 +74,10 @@ Goals now and then; **Import JSON** restores a backup.
 
 To change the schedule itself, edit `TEMPLATE` at the top of `app.js`; goals,
 bars, reports and advice all follow from it.
+
+## Also here
+
+[`grocery/`](grocery/) — **菜篮 Basket**, a weekly grocery list for a phone:
+items file themselves into aisles, a dish written in English or 中文 turns into
+its ingredients, and a weekly record shows whether every meal actually carried
+vegetables, protein and a grain. Same idea, same shape, no build step.

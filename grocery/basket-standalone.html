@@ -1,0 +1,2388 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#f6f6f4">
+<title>菜篮 Basket — weekly grocery list &amp; balance</title>
+<style>
+/* ── tokens ─────────────────────────────────────────────── */
+:root {
+  color-scheme: light dark;
+  --bg:        #f6f6f4;
+  --panel:     #ffffff;
+  --ink:       #1c1c1a;
+  --ink-soft:  #6b6b66;
+  --line:      #e2e2dd;
+  --accent:    #2f7d55;
+  --accent-sf: #e2efe7;
+  --good:      #3f8f66;
+  --warn:      #b8860b;
+  --bad:       #b4453c;
+  --radius:    12px;
+  --shadow:    0 1px 2px rgba(0,0,0,.05), 0 4px 16px rgba(0,0,0,.04);
+  --tabh:      0px;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg:       #12140f;
+    --panel:    #1b1d18;
+    --ink:      #eceade;
+    --ink-soft: #97998d;
+    --line:     #31342b;
+    --accent:   #6fc292;
+    --accent-sf:#22301f;
+    --good:     #6fbf92;
+    --warn:     #d9ae4a;
+    --bad:      #e0776c;
+    --shadow:   0 1px 2px rgba(0,0,0,.3), 0 4px 16px rgba(0,0,0,.25);
+  }
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font: 15px/1.5 ui-sans-serif, -apple-system, "Segoe UI", Inter, "PingFang SC",
+        "Hiragino Sans GB", "Microsoft YaHei", Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -webkit-text-size-adjust: 100%;
+}
+.zh { color: var(--ink-soft); font-weight: 400; }
+
+/* ── top bar ────────────────────────────────────────────── */
+.topbar {
+  display: flex; align-items: center; gap: 20px;
+  padding: 13px 20px;
+  border-bottom: 1px solid var(--line);
+  background: var(--panel);
+  position: sticky; top: 0; z-index: 20;
+}
+.brand { font-weight: 650; letter-spacing: -.01em; font-size: 17px; }
+.brand span { color: var(--ink-soft); font-weight: 500; }
+.tabs { display: flex; gap: 4px; }
+.tab {
+  border: 0; background: transparent; color: var(--ink-soft);
+  padding: 7px 13px; border-radius: 999px; cursor: pointer;
+  font: inherit; font-weight: 500; display: flex; align-items: baseline; gap: 6px;
+}
+.tab i { font-style: normal; font-size: 12px; opacity: .7; }
+.tab:hover { color: var(--ink); background: var(--bg); }
+.tab.is-active { background: var(--accent-sf); color: var(--accent); }
+
+main { max-width: 820px; margin: 0 auto; padding: 20px 16px calc(90px + var(--tabh)); }
+.view { display: none; }
+.view.is-active { display: block; }
+
+/* ── shared bits ────────────────────────────────────────── */
+.card {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 16px;
+  margin-bottom: 14px;
+  box-shadow: var(--shadow);
+}
+.cardhead {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 10px; margin-bottom: 12px; flex-wrap: wrap;
+}
+.cardhead h2 {
+  margin: 0; font-size: 13px; font-weight: 600; letter-spacing: .02em;
+  text-transform: uppercase; color: var(--ink-soft);
+}
+.cardhead h2 .zh { text-transform: none; letter-spacing: 0; }
+.cardhead-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.listfoot { margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--line); }
+h1 { font-size: 22px; margin: 0; letter-spacing: -.02em; }
+.sub { color: var(--ink-soft); margin: 4px 0 0; font-size: 14px; }
+.muted { color: var(--ink-soft); font-size: 13px; }
+.spacer { flex: 1; }
+details summary { cursor: pointer; color: var(--ink-soft); font-size: 13px; }
+
+button, input, textarea, select { font: inherit; color: inherit; }
+input, select, textarea {
+  background: var(--bg); border: 1px solid var(--line);
+  border-radius: 8px; padding: 8px 10px;
+}
+.icon {
+  width: 36px; height: 36px; border-radius: 9px; cursor: pointer; flex: none;
+  border: 1px solid var(--line); background: var(--panel);
+}
+.icon:hover { background: var(--bg); }
+.chip {
+  border: 1px solid var(--line); background: var(--panel); color: var(--ink-soft);
+  padding: 7px 13px; border-radius: 999px; cursor: pointer; font-weight: 500; font-size: 13px;
+}
+.chip:hover { color: var(--ink); }
+.ghost {
+  border: 1px solid var(--line); background: transparent; color: var(--ink-soft);
+  padding: 7px 11px; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: 500;
+}
+.ghost:hover { color: var(--ink); background: var(--bg); }
+.ghost.danger:hover { color: var(--bad); border-color: var(--bad); }
+.filelabel { display: inline-block; }
+
+.weeknav { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; }
+.weeklabel { font-weight: 600; font-size: 14px; }
+.dayhead { margin: 16px 0 14px; }
+
+.bar { height: 8px; border-radius: 999px; background: var(--line); overflow: hidden; position: relative; }
+.bar > i { display: block; height: 100%; border-radius: 999px; background: var(--accent); }
+.bar > u {
+  position: absolute; top: -2px; width: 2px; height: 12px;
+  background: var(--ink-soft); opacity: .55; text-decoration: none;
+}
+.dot { width: 9px; height: 9px; border-radius: 50%; flex: none; background: var(--line); }
+.gdot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; flex: none; }
+
+/* ── add bar ────────────────────────────────────────────── */
+.addbar {
+  background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
+  padding: 12px; margin-bottom: 14px; box-shadow: var(--shadow);
+  position: sticky; top: 62px; z-index: 15;
+}
+.addrow { display: flex; gap: 8px; }
+.addrow input { flex: 1; min-width: 0; font-size: 16px; padding: 11px 12px; }
+.add {
+  border: 0; background: var(--accent); color: #fff; font-weight: 600;
+  padding: 0 18px; border-radius: 9px; cursor: pointer; flex: none;
+}
+.add:active { transform: translateY(1px); }
+.addhint { margin: 8px 2px 0; font-size: 12.5px; color: var(--ink-soft); }
+.suggests { display: flex; gap: 6px; overflow-x: auto; margin-top: 9px; padding-bottom: 2px; }
+.suggests:empty { display: none; }
+.sug {
+  flex: none; display: flex; flex-direction: column; align-items: flex-start; gap: 1px;
+  border: 1px solid var(--line); background: var(--bg); border-radius: 9px;
+  padding: 6px 10px; cursor: pointer; line-height: 1.25; text-align: left;
+}
+.sug b { font-size: 13.5px; font-weight: 550; }
+.sug i { font-style: normal; font-size: 11px; color: var(--ink-soft); }
+
+/* ── the list ───────────────────────────────────────────── */
+.listmeta { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+.listmeta .bar { flex: 1; }
+.aisle { margin-top: 16px; }
+.aislehead {
+  display: flex; align-items: baseline; gap: 7px;
+  padding-bottom: 5px; border-bottom: 1px solid var(--line);
+}
+.aislehead h3 { margin: 0; font-size: 13px; font-weight: 650; letter-spacing: .01em; }
+.aislehead .zh { font-size: 12px; }
+.aislehead .count { margin-left: auto; font-size: 12px; color: var(--ink-soft); font-variant-numeric: tabular-nums; }
+
+.items { list-style: none; margin: 0; padding: 0; }
+.item {
+  display: grid;
+  grid-template-columns: 22px 1fr 64px 28px;
+  gap: 9px; align-items: center;
+  padding: 7px 0; border-bottom: 1px solid var(--line);
+}
+.item:last-child { border-bottom: 0; }
+.item > input[type=checkbox] {
+  width: 20px; height: 20px; padding: 0; accent-color: var(--accent); cursor: pointer;
+}
+.imid { min-width: 0; }
+.iname {
+  width: 100%; border: 0; background: transparent; padding: 3px 2px;
+  font-weight: 500; border-radius: 6px;
+}
+.iname:focus { background: var(--bg); outline: 1px solid var(--line); }
+.isub { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; padding: 0 3px 2px; font-size: 12px; color: var(--ink-soft); }
+.isub .from { font-style: italic; }
+.isub .note { color: var(--accent); }
+.iqty { width: 100%; text-align: right; padding: 5px 7px; font-size: 13px; }
+.imore {
+  width: 28px; height: 28px; border-radius: 7px; border: 1px solid transparent;
+  background: transparent; color: var(--ink-soft); cursor: pointer; line-height: 1;
+}
+.imore:hover { border-color: var(--line); color: var(--ink); }
+.item.is-got .iname { color: var(--ink-soft); text-decoration: line-through; }
+.item.is-got .isub { opacity: .6; }
+
+.ipanel { display: none; grid-column: 1 / -1; padding: 8px 0 10px; }
+.ipanel.open { display: block; }
+.prow { display: flex; align-items: center; gap: 10px; margin-bottom: 9px; flex-wrap: wrap; }
+.prow > label { font-size: 12px; color: var(--ink-soft); width: 82px; flex: none; }
+.prow select, .prow > input { flex: 1; min-width: 140px; font-size: 14px; }
+.gchips { display: flex; gap: 5px; flex-wrap: wrap; flex: 1; }
+.gchip {
+  border: 1px solid var(--line); background: transparent; color: var(--ink-soft);
+  border-radius: 999px; padding: 4px 9px; font-size: 12px; cursor: pointer;
+}
+.gchip.on { border-color: var(--gc); color: var(--gc); background: color-mix(in srgb, var(--gc) 12%, transparent); }
+
+/* ── meals ──────────────────────────────────────────────── */
+.daychips { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px; }
+.daychip {
+  flex: 1 0 auto; min-width: 58px; display: flex; flex-direction: column; align-items: center; gap: 2px;
+  border: 1px solid var(--line); background: var(--panel); border-radius: 10px;
+  padding: 8px 6px; cursor: pointer;
+}
+.daychip b { font-size: 13px; font-weight: 600; }
+.daychip i { font-style: normal; font-size: 11px; color: var(--ink-soft); }
+.daychip .dots { display: flex; gap: 3px; margin-top: 2px; }
+.daychip .dot { width: 6px; height: 6px; }
+.daychip.is-today { border-color: var(--accent); }
+.daychip.is-active { background: var(--accent-sf); border-color: transparent; }
+.daychip.is-active b { color: var(--accent); }
+
+.meal .badges { display: flex; gap: 5px; }
+.badge {
+  font-size: 11px; padding: 3px 8px; border-radius: 999px;
+  border: 1px solid var(--line); color: var(--ink-soft);
+}
+.badge.on { border-color: var(--gc); color: var(--gc); background: color-mix(in srgb, var(--gc) 12%, transparent); }
+.entries { list-style: none; margin: 0; padding: 0; }
+.entries:empty { display: none; }
+.entry {
+  display: grid; grid-template-columns: 1fr auto 30px 30px; gap: 6px; align-items: center;
+  padding: 4px 0; border-bottom: 1px solid var(--line);
+}
+.etext { border: 0; background: transparent; padding: 5px 3px; border-radius: 6px; width: 100%; }
+.etext:focus { background: var(--bg); outline: 1px solid var(--line); }
+.edots { display: flex; gap: 3px; }
+.edots .unknown { font-size: 11px; color: var(--ink-soft); }
+.esmall {
+  width: 28px; height: 28px; border-radius: 7px; border: 1px solid transparent;
+  background: transparent; color: var(--ink-soft); cursor: pointer; line-height: 1; font-size: 15px;
+}
+.esmall:hover { border-color: var(--line); color: var(--ink); }
+.mealadd { display: flex; gap: 7px; margin-top: 10px; }
+.mealadd input { flex: 1; min-width: 0; font-size: 16px; }
+.mealadd .add { padding: 0 15px; font-size: 17px; }
+
+/* ── balance ────────────────────────────────────────────── */
+.scorecard { display: flex; align-items: center; gap: 18px; }
+.scorering {
+  width: 92px; height: 92px; border-radius: 50%; flex: none; position: relative;
+  display: grid; place-items: center;
+  background: conic-gradient(var(--accent) calc(var(--p) * 1%), var(--line) 0);
+}
+.scorering::before {
+  content: ""; position: absolute; width: 72px; height: 72px;
+  border-radius: 50%; background: var(--panel);
+}
+.scorering span { position: relative; font-size: 20px; font-weight: 650; font-variant-numeric: tabular-nums; }
+.scoretext { min-width: 0; }
+
+.cats { display: flex; flex-direction: column; gap: 13px; }
+.cat .catrow { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-bottom: 6px; }
+.cat .catname { font-weight: 550; display: flex; align-items: center; gap: 7px; font-size: 14px; }
+.cat .catnum { font-size: 12.5px; color: var(--ink-soft); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.cat .catnum b { color: var(--ink); }
+.cat .delta { font-size: 12px; margin-top: 5px; }
+.delta.over  { color: var(--good); }
+.delta.under { color: var(--bad); }
+
+.heat {
+  display: grid; grid-template-columns: 40px repeat(7, 1fr); gap: 3px;
+  font-variant-numeric: tabular-nums;
+}
+.hcol { font-size: 10.5px; color: var(--ink-soft); text-align: center; text-transform: uppercase; letter-spacing: .03em; }
+.hcol.is-today { color: var(--accent); font-weight: 650; }
+.hrow { font-size: 11px; color: var(--ink-soft); display: flex; align-items: center; }
+.hcell {
+  aspect-ratio: 1 / 1; border-radius: 6px; background: var(--bg);
+  border: 1px solid var(--line); display: grid; place-items: center;
+  font-size: 11px; cursor: pointer;
+}
+.hcell.future { opacity: .35; }
+.mealstats { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--line); font-size: 13px; }
+.mstat { margin-bottom: 3px; }
+
+.advicelist { margin: 0; padding-left: 20px; }
+.advicelist li { margin-bottom: 10px; }
+.advicelist li:last-child { margin-bottom: 0; }
+
+/* ── setup ──────────────────────────────────────────────── */
+.goals { display: grid; grid-template-columns: repeat(auto-fit, minmax(148px, 1fr)); gap: 11px; margin-top: 12px; }
+.goal { display: flex; flex-direction: column; gap: 5px; }
+.goal label { font-size: 12.5px; color: var(--ink-soft); display: flex; align-items: center; gap: 7px; }
+.teach { padding: 10px 0; border-bottom: 1px solid var(--line); }
+.teach:last-child { border-bottom: 0; }
+.teach b { display: block; margin-bottom: 6px; }
+.teach select { margin-bottom: 7px; width: 100%; }
+.dishlist { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+
+/* ── toast ──────────────────────────────────────────────── */
+.toast {
+  position: fixed; left: 50%; bottom: calc(20px + var(--tabh));
+  transform: translate(-50%, 12px);
+  background: var(--ink); color: var(--bg);
+  padding: 10px 16px; border-radius: 999px; font-size: 13.5px; font-weight: 500;
+  opacity: 0; pointer-events: none; transition: opacity .18s, transform .18s;
+  z-index: 40; max-width: 90vw; text-align: center;
+}
+.toast.show { opacity: .95; transform: translate(-50%, 0); }
+
+/* ── phone ──────────────────────────────────────────────── */
+@media (max-width: 640px) {
+  :root { --tabh: calc(56px + env(safe-area-inset-bottom, 0px)); }
+  .topbar { padding: 11px 16px; }
+  .tabs {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 30;
+    background: var(--panel); border-top: 1px solid var(--line);
+    padding: 6px 4px calc(6px + env(safe-area-inset-bottom, 0px));
+    gap: 0;
+  }
+  .tab {
+    flex: 1; flex-direction: column; align-items: center; gap: 1px;
+    padding: 5px 2px; border-radius: 10px; font-size: 12px;
+  }
+  .tab i { font-size: 10px; }
+  main { padding: 16px 13px calc(28px + var(--tabh)); }
+  .addbar { top: 56px; }
+  .card { padding: 14px; }
+  h1 { font-size: 20px; }
+  input, select, textarea { font-size: 16px; }
+  .iqty, .ghost, .chip { font-size: 13px; }
+  .item { grid-template-columns: 22px 1fr 56px 26px; gap: 7px; }
+  .heat { grid-template-columns: 32px repeat(7, 1fr); gap: 2px; }
+  .hcell { font-size: 10px; border-radius: 5px; }
+  .scorecard { gap: 14px; }
+  .scorering { width: 78px; height: 78px; }
+  .scorering::before { width: 62px; height: 62px; }
+  .prow > label { width: 100%; }
+}
+@media (max-width: 380px) {
+  .cat .catnum { font-size: 11.5px; }
+  .daychip { min-width: 48px; }
+}
+
+/* ── folded seasonings ──────────────────────────────────── */
+.staples {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--line);
+  font-size: 12.5px; color: var(--ink-soft);
+}
+.staples:empty { display: none; }
+.staples span { flex: 1; min-width: 180px; }
+.hrow .zh { white-space: nowrap; }
+
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">菜篮 <span>Basket</span></div>
+  <nav class="tabs" id="tabs">
+    <button class="tab is-active" data-view="list"><b>List</b><i>清单</i></button>
+    <button class="tab" data-view="meals"><b>Meals</b><i>每餐</i></button>
+    <button class="tab" data-view="week"><b>Balance</b><i>均衡</i></button>
+    <button class="tab" data-view="setup"><b>Setup</b><i>设置</i></button>
+  </nav>
+</header>
+
+<main>
+
+<!-- ─────────────────────────── LIST ─────────────────────────── -->
+<section id="view-list" class="view is-active">
+
+  <div class="weeknav">
+    <button class="icon" id="weekPrev" title="Previous week">&larr;</button>
+    <span class="weeklabel" id="weekLabel">—</span>
+    <button class="icon" id="weekNext" title="Next week">&rarr;</button>
+    <div class="spacer"></div>
+    <button class="chip" id="goThisWeek">This week 本周</button>
+  </div>
+
+  <div class="addbar">
+    <div class="addrow">
+      <input id="addInput" type="text" autocomplete="off" enterkeyhint="done"
+             placeholder="番茄炒蛋 · 2 lbs chicken · 苹果 · spaghetti bolognese">
+      <button class="add" id="addBtn">Add</button>
+    </div>
+    <p class="addhint" id="addHint">Type food and it files itself. Type a dish — in English or 中文 — and its ingredients arrive.</p>
+    <div class="suggests" id="suggests"></div>
+  </div>
+
+  <div class="card">
+    <div class="cardhead">
+      <h2>This week&rsquo;s list <span class="zh">本周清单</span></h2>
+      <div class="cardhead-actions">
+        <button class="ghost" id="carryOver" title="Bring last week's unbought items forward">Carry over</button>
+        <button class="ghost" id="copyList">Copy</button>
+      </div>
+    </div>
+    <div class="listmeta">
+      <div class="bar"><i id="listBar"></i></div>
+      <span class="muted" id="listCount">nothing on the list yet</span>
+    </div>
+    <div id="sections"></div>
+    <div class="staples" id="staples"></div>
+    <div class="cardhead-actions listfoot">
+      <button class="ghost" id="clearGot">Clear what&rsquo;s bought</button>
+      <button class="ghost danger" id="clearAll">Clear the list</button>
+    </div>
+  </div>
+
+</section>
+
+<!-- ─────────────────────────── MEALS ────────────────────────── -->
+<section id="view-meals" class="view">
+
+  <div class="weeknav">
+    <button class="icon" id="mWeekPrev" title="Previous week">&larr;</button>
+    <span class="weeklabel" id="mWeekLabel">—</span>
+    <button class="icon" id="mWeekNext" title="Next week">&rarr;</button>
+    <div class="spacer"></div>
+    <button class="chip" id="goToday">Today 今天</button>
+  </div>
+
+  <div class="daychips" id="dayChips"></div>
+
+  <div class="dayhead">
+    <h1 id="mealDayTitle">—</h1>
+    <p class="sub" id="mealDaySub"></p>
+  </div>
+
+  <div id="mealList"></div>
+
+  <div class="card">
+    <div class="cardhead"><h2>Shopping <span class="zh">采购</span></h2></div>
+    <p class="sub">Everything written on this day, turned into ingredients on this week&rsquo;s list.</p>
+    <div class="cardhead-actions listfoot">
+      <button class="ghost" id="dayToList">Send this day to the list</button>
+      <button class="ghost" id="copyDay">Copy the day</button>
+    </div>
+  </div>
+
+</section>
+
+<!-- ────────────────────────── BALANCE ───────────────────────── -->
+<section id="view-week" class="view">
+
+  <div class="weeknav">
+    <button class="icon" id="bWeekPrev" title="Previous week">&larr;</button>
+    <span class="weeklabel" id="bWeekLabel">—</span>
+    <button class="icon" id="bWeekNext" title="Next week">&rarr;</button>
+    <div class="spacer"></div>
+    <button class="chip" id="bThisWeek">This week 本周</button>
+  </div>
+
+  <div class="card scorecard">
+    <div class="score">
+      <div class="scorering" id="scoreRing"><span id="scorePct">0%</span></div>
+    </div>
+    <div class="scoretext">
+      <h1 id="scoreHeadline">—</h1>
+      <p class="sub" id="scoreSub"></p>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="cardhead"><h2>Every food group <span class="zh">六大类</span></h2></div>
+    <div class="cats" id="balanceGroups"></div>
+  </div>
+
+  <div class="card">
+    <div class="cardhead"><h2>The week, day by day <span class="zh">每日</span></h2></div>
+    <div class="heat" id="balanceGrid"></div>
+  </div>
+
+  <div class="card">
+    <div class="cardhead"><h2>Every meal <span class="zh">每餐</span></h2></div>
+    <p class="sub">A meal is full when it carries vegetables, protein and a grain.</p>
+    <div class="heat" id="mealMatrix"></div>
+    <div class="mealstats" id="mealStats"></div>
+  </div>
+
+  <div class="card advice">
+    <div class="cardhead">
+      <h2>What to fix <span class="zh">下周建议</span></h2>
+      <div class="cardhead-actions"><button class="ghost" id="copyReport">Copy report</button></div>
+    </div>
+    <ol class="advicelist" id="adviceList"></ol>
+  </div>
+
+</section>
+
+<!-- ─────────────────────────── SETUP ────────────────────────── -->
+<section id="view-setup" class="view">
+
+  <div class="card">
+    <div class="cardhead">
+      <h2>Daily targets <span class="zh">每日目标</span></h2>
+      <div class="cardhead-actions"><button class="ghost" id="resetTargets">Reset</button></div>
+    </div>
+    <p class="sub">Servings a day. The weekly goal is seven times these.</p>
+    <div class="goals" id="targetInputs"></div>
+  </div>
+
+  <div class="card">
+    <div class="cardhead"><h2>Teach it <span class="zh">自定义分类</span></h2></div>
+    <p class="sub">Anything it filed under <b>Other</b> is listed here. Give it a section and its food groups once and it remembers.</p>
+    <div id="teachList"></div>
+  </div>
+
+  <div class="card">
+    <div class="cardhead"><h2>What it knows <span class="zh">词库</span></h2></div>
+    <p class="sub" id="lexStats">—</p>
+    <details>
+      <summary>The dishes it can shop for</summary>
+      <div class="dishlist" id="dishList"></div>
+    </details>
+  </div>
+
+  <div class="card">
+    <div class="cardhead"><h2>Backup <span class="zh">备份</span></h2></div>
+    <p class="sub">Everything lives in this browser only. Export now and then.</p>
+    <div class="cardhead-actions">
+      <button class="ghost" id="exportData">Export JSON</button>
+      <label class="ghost filelabel">Import JSON<input type="file" id="importData" accept="application/json" hidden></label>
+      <button class="ghost danger" id="wipeData">Erase everything</button>
+    </div>
+  </div>
+
+</section>
+
+</main>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* 菜篮 Basket — the knowledge layer.
+
+   FOODS rows are [english names, 中文名, aisle, nutrition groups]. Names are
+   comma-separated and the first one is canonical, so an item typed in either
+   language finds the same food and lands in the same section. Groups drive the
+   weekly balance; seasonings and cooking oil deliberately carry none, otherwise
+   every stir-fry would score a serving of fat.
+
+   RECIPES rows are [dish names, ingredients]. Ingredients are written the way
+   you would say them out loud — the same parser that reads your typing reads
+   them, so "2 番茄" and "2 tomatoes" both resolve to the tomato entry. */
+
+/* ── aisles, in the order you walk the shop ─────────────────── */
+const AISLES = [
+  { id: 'fruit',   en: 'Fruit',             zh: '水果' },
+  { id: 'veg',     en: 'Vegetables',        zh: '蔬菜' },
+  { id: 'arom',    en: 'Herbs & aromatics', zh: '葱姜蒜香草' },
+  { id: 'meat',    en: 'Meat & poultry',    zh: '肉类' },
+  { id: 'sea',     en: 'Seafood',           zh: '海鲜水产' },
+  { id: 'dairy',   en: 'Eggs & dairy',      zh: '蛋 · 奶制品' },
+  { id: 'soy',     en: 'Tofu & soy',        zh: '豆制品' },
+  { id: 'grain',   en: 'Grains & noodles',  zh: '米面主食' },
+  { id: 'bake',    en: 'Bakery',            zh: '面包烘焙' },
+  { id: 'bean',    en: 'Beans & nuts',      zh: '干豆坚果' },
+  { id: 'pantry',  en: 'Pantry & sauces',   zh: '调料酱汁' },
+  { id: 'spice',   en: 'Spices & dry goods',zh: '香料干货' },
+  { id: 'frozen',  en: 'Frozen',            zh: '冷冻' },
+  { id: 'drink',   en: 'Drinks',            zh: '饮品' },
+  { id: 'home',    en: 'Household',         zh: '家居日用' },
+  { id: 'other',   en: 'Other',             zh: '其他' },
+];
+
+/* ── the six things a balanced day needs ────────────────────── */
+const GROUPS = [
+  { id: 'veg',     en: 'Vegetables',  zh: '蔬菜',     short: '蔬菜', color: '#3fb27f', perDay: 3 },
+  { id: 'fruit',   en: 'Fruit',       zh: '水果',     short: '水果', color: '#e0705a', perDay: 2 },
+  { id: 'grain',   en: 'Grains',      zh: '主食',     short: '主食', color: '#d9a441', perDay: 3 },
+  { id: 'protein', en: 'Protein',     zh: '蛋白质',   short: '蛋白', color: '#4f8ff7', perDay: 3 },
+  { id: 'dairy',   en: 'Dairy',       zh: '奶制品',   short: '奶类', color: '#8f7ee0', perDay: 1 },
+  { id: 'fat',     en: 'Nuts & fats', zh: '坚果油脂', short: '油脂', color: '#a08767', perDay: 1 },
+];
+
+/* the three a single meal is judged on */
+const CORE_GROUPS = ['veg', 'protein', 'grain'];
+
+const MEALS = [
+  { id: 'breakfast', en: 'Breakfast', zh: '早餐' },
+  { id: 'lunch',     en: 'Lunch',     zh: '午餐' },
+  { id: 'dinner',    en: 'Dinner',    zh: '晚餐' },
+  { id: 'snack',     en: 'Snacks',    zh: '加餐', optional: true },
+];
+
+/* ── the pantry itself ──────────────────────────────────────── */
+const FOODS = [
+  /* fruit */
+  ['apple', '苹果', 'fruit', 'fruit'],
+  ['banana', '香蕉', 'fruit', 'fruit'],
+  ['orange', '橙子,橙,柳丁', 'fruit', 'fruit'],
+  ['mandarin,tangerine', '橘子,桔子,砂糖橘', 'fruit', 'fruit'],
+  ['grapefruit,pomelo', '西柚,葡萄柚,柚子', 'fruit', 'fruit'],
+  ['lemon', '柠檬', 'fruit', 'fruit'],
+  ['lime', '青柠', 'fruit', 'fruit'],
+  ['grape', '葡萄,提子', 'fruit', 'fruit'],
+  ['strawberry', '草莓', 'fruit', 'fruit'],
+  ['blueberry', '蓝莓', 'fruit', 'fruit'],
+  ['raspberry', '树莓,覆盆子', 'fruit', 'fruit'],
+  ['blackberry', '黑莓', 'fruit', 'fruit'],
+  ['watermelon', '西瓜', 'fruit', 'fruit'],
+  ['melon,cantaloupe', '哈密瓜,甜瓜', 'fruit', 'fruit'],
+  ['pineapple', '菠萝,凤梨', 'fruit', 'fruit'],
+  ['mango', '芒果', 'fruit', 'fruit'],
+  ['peach', '桃子,水蜜桃,黄桃', 'fruit', 'fruit'],
+  ['pear', '梨,梨子,雪梨', 'fruit', 'fruit'],
+  ['plum', '李子,布林', 'fruit', 'fruit'],
+  ['cherry', '樱桃,车厘子', 'fruit', 'fruit'],
+  ['kiwi,kiwifruit', '猕猴桃,奇异果', 'fruit', 'fruit'],
+  ['pomegranate', '石榴', 'fruit', 'fruit'],
+  ['persimmon', '柿子', 'fruit', 'fruit'],
+  ['lychee', '荔枝', 'fruit', 'fruit'],
+  ['longan', '龙眼,桂圆', 'fruit', 'fruit'],
+  ['dragon fruit', '火龙果', 'fruit', 'fruit'],
+  ['papaya', '木瓜', 'fruit', 'fruit'],
+  ['guava', '番石榴,芭乐', 'fruit', 'fruit'],
+  ['apricot', '杏,杏子', 'fruit', 'fruit'],
+  ['fig', '无花果', 'fruit', 'fruit'],
+  ['coconut', '椰子', 'fruit', 'fat'],
+  ['avocado', '牛油果,鳄梨', 'fruit', 'fruit fat'],
+  ['red date,jujube', '红枣,大枣', 'fruit', 'fruit'],
+  ['raisin', '葡萄干', 'fruit', 'fruit'],
+  ['dried cranberry', '蔓越莓干', 'fruit', 'fruit'],
+
+  /* vegetables */
+  ['tomato', '番茄,西红柿', 'veg', 'veg'],
+  ['cherry tomato', '圣女果,小番茄', 'veg', 'veg'],
+  ['cucumber', '黄瓜,青瓜', 'veg', 'veg'],
+  ['carrot', '胡萝卜', 'veg', 'veg'],
+  ['potato', '土豆,马铃薯', 'veg', 'veg grain'],
+  ['sweet potato', '红薯,地瓜,番薯', 'veg', 'veg grain'],
+  ['onion', '洋葱', 'veg', 'veg'],
+  ['bell pepper,capsicum', '彩椒,甜椒,柿子椒', 'veg', 'veg'],
+  ['green pepper', '青椒', 'veg', 'veg'],
+  ['chili pepper,chilli,chili', '辣椒,小米椒,尖椒', 'veg', 'veg'],
+  ['broccoli', '西兰花,西蓝花', 'veg', 'veg'],
+  ['cauliflower', '花菜,菜花,有机花菜', 'veg', 'veg'],
+  ['cabbage', '卷心菜,包菜,圆白菜', 'veg', 'veg'],
+  ['napa cabbage', '大白菜', 'veg', 'veg'],
+  ['bok choy,pak choi', '小白菜,青菜,上海青', 'veg', 'veg'],
+  ['baby bok choy', '娃娃菜', 'veg', 'veg'],
+  ['choy sum', '菜心', 'veg', 'veg'],
+  ['chinese broccoli,gai lan', '芥兰,芥蓝', 'veg', 'veg'],
+  ['spinach', '菠菜', 'veg', 'veg'],
+  ['lettuce', '生菜', 'veg', 'veg'],
+  ['romaine', '罗马生菜', 'veg', 'veg'],
+  ['kale', '羽衣甘蓝', 'veg', 'veg'],
+  ['arugula,rocket', '芝麻菜', 'veg', 'veg'],
+  ['celery', '芹菜,西芹', 'veg', 'veg'],
+  ['asparagus', '芦笋', 'veg', 'veg'],
+  ['zucchini,courgette', '西葫芦', 'veg', 'veg'],
+  ['eggplant,aubergine', '茄子', 'veg', 'veg'],
+  ['pumpkin', '南瓜', 'veg', 'veg'],
+  ['winter melon', '冬瓜', 'veg', 'veg'],
+  ['bitter melon', '苦瓜', 'veg', 'veg'],
+  ['luffa,silk squash', '丝瓜', 'veg', 'veg'],
+  ['chayote', '佛手瓜', 'veg', 'veg'],
+  ['green bean,string bean', '四季豆,豆角,长豆角', 'veg', 'veg'],
+  ['snow pea', '荷兰豆', 'veg', 'veg'],
+  ['sugar snap pea', '甜豆', 'veg', 'veg'],
+  ['pea,green pea', '豌豆,青豆', 'veg', 'veg protein'],
+  ['corn,sweetcorn', '玉米,甜玉米', 'veg', 'veg grain'],
+  ['mushroom,button mushroom', '蘑菇,口蘑', 'veg', 'veg'],
+  ['shiitake', '香菇,冬菇', 'veg', 'veg'],
+  ['enoki', '金针菇', 'veg', 'veg'],
+  ['king oyster mushroom', '杏鲍菇', 'veg', 'veg'],
+  ['oyster mushroom', '平菇', 'veg', 'veg'],
+  ['wood ear', '木耳,黑木耳', 'veg', 'veg'],
+  ['bean sprout', '豆芽,绿豆芽,黄豆芽', 'veg', 'veg'],
+  ['pea shoot', '豆苗', 'veg', 'veg'],
+  ['lotus root', '莲藕,藕', 'veg', 'veg'],
+  ['bamboo shoot', '竹笋,笋', 'veg', 'veg'],
+  ['water chestnut', '荸荠,马蹄', 'veg', 'veg'],
+  ['taro', '芋头', 'veg', 'veg grain'],
+  ['chinese yam', '山药', 'veg', 'veg'],
+  ['daikon,white radish', '白萝卜,萝卜', 'veg', 'veg'],
+  ['beetroot,beet', '甜菜根', 'veg', 'veg'],
+  ['okra', '秋葵', 'veg', 'veg'],
+  ['brussels sprout', '抱子甘蓝', 'veg', 'veg'],
+  ['celtuce', '莴笋', 'veg', 'veg'],
+  ['amaranth greens', '苋菜', 'veg', 'veg'],
+  ['garlic sprout,garlic scape', '蒜苗,蒜薹', 'veg', 'veg'],
+  ['chinese chives', '韭菜', 'veg', 'veg'],
+  ['watercress', '西洋菜', 'veg', 'veg'],
+  ['seaweed,nori', '紫菜,海苔', 'veg', 'veg'],
+  ['kelp', '海带', 'veg', 'veg'],
+  ['pickled mustard greens', '酸菜', 'veg', 'veg'],
+  ['preserved vegetable', '榨菜,梅干菜', 'veg', 'veg'],
+  ['olive', '橄榄', 'veg', 'fat'],
+
+  /* aromatics + herbs */
+  ['garlic', '大蒜,蒜,蒜头,蒜瓣', 'arom', ''],
+  ['ginger', '生姜,姜', 'arom', ''],
+  ['scallion,spring onion,green onion', '葱,小葱,香葱,大葱', 'arom', ''],
+  ['shallot', '红葱头', 'arom', ''],
+  ['leek', '韭葱', 'arom', ''],
+  ['cilantro,coriander', '香菜,芫荽', 'arom', ''],
+  ['parsley', '欧芹', 'arom', ''],
+  ['basil', '罗勒,九层塔', 'arom', ''],
+  ['mint', '薄荷', 'arom', ''],
+  ['rosemary', '迷迭香', 'arom', ''],
+  ['thyme', '百里香', 'arom', ''],
+  ['dill', '莳萝', 'arom', ''],
+  ['lemongrass', '香茅', 'arom', ''],
+
+  /* meat */
+  ['chicken', '鸡肉,鸡', 'meat', 'protein'],
+  ['chicken breast', '鸡胸肉,鸡胸', 'meat', 'protein'],
+  ['chicken thigh', '鸡腿肉,鸡腿,琵琶腿', 'meat', 'protein'],
+  ['chicken wing', '鸡翅,鸡翅膀', 'meat', 'protein'],
+  ['whole chicken', '整鸡,三黄鸡', 'meat', 'protein'],
+  ['chicken feet', '鸡爪,凤爪', 'meat', 'protein'],
+  ['pork', '猪肉', 'meat', 'protein'],
+  ['pork belly', '五花肉', 'meat', 'protein'],
+  ['pork loin,pork tenderloin', '里脊,猪里脊,通脊', 'meat', 'protein'],
+  ['ground pork,minced pork', '猪肉末,肉末,肉馅,猪绞肉', 'meat', 'protein'],
+  ['pork ribs', '排骨,肋排', 'meat', 'protein'],
+  ['pork shoulder', '梅花肉', 'meat', 'protein'],
+  ['beef', '牛肉', 'meat', 'protein'],
+  ['ground beef,minced beef', '牛肉末,牛肉馅,牛绞肉', 'meat', 'protein'],
+  ['steak', '牛排', 'meat', 'protein'],
+  ['beef brisket', '牛腩', 'meat', 'protein'],
+  ['beef shank', '牛腱,牛腱子', 'meat', 'protein'],
+  ['lamb,mutton', '羊肉', 'meat', 'protein'],
+  ['lamb chop', '羊排', 'meat', 'protein'],
+  ['duck', '鸭肉,鸭', 'meat', 'protein'],
+  ['bacon', '培根', 'meat', 'protein'],
+  ['sausage', '香肠,腊肠,烤肠', 'meat', 'protein'],
+  ['ham', '火腿', 'meat', 'protein'],
+  ['pork liver', '猪肝', 'meat', 'protein'],
+  ['tripe', '牛肚,毛肚', 'meat', 'protein'],
+  ['meatball', '肉丸,丸子', 'meat', 'protein'],
+
+  /* seafood */
+  ['fish', '鱼', 'sea', 'protein'],
+  ['salmon', '三文鱼,鲑鱼', 'sea', 'protein fat'],
+  ['tuna', '金枪鱼,吞拿鱼', 'sea', 'protein'],
+  ['cod', '鳕鱼', 'sea', 'protein'],
+  ['sea bass', '鲈鱼', 'sea', 'protein'],
+  ['tilapia', '罗非鱼', 'sea', 'protein'],
+  ['grass carp', '草鱼', 'sea', 'protein'],
+  ['crucian carp', '鲫鱼', 'sea', 'protein'],
+  ['shrimp,prawn', '虾,基围虾,大虾,虾仁', 'sea', 'protein'],
+  ['crab', '螃蟹,蟹', 'sea', 'protein'],
+  ['squid', '鱿鱼', 'sea', 'protein'],
+  ['clam', '蛤蜊,花甲', 'sea', 'protein'],
+  ['mussel', '青口,贻贝', 'sea', 'protein'],
+  ['scallop', '扇贝,带子', 'sea', 'protein'],
+  ['oyster', '生蚝,牡蛎', 'sea', 'protein'],
+  ['dried shrimp', '虾米,虾皮', 'sea', 'protein'],
+  ['fish ball', '鱼丸', 'sea', 'protein'],
+  ['eel', '鳗鱼', 'sea', 'protein'],
+
+  /* eggs + dairy */
+  ['egg', '鸡蛋,蛋', 'dairy', 'protein'],
+  ['quail egg', '鹌鹑蛋', 'dairy', 'protein'],
+  ['century egg', '皮蛋', 'dairy', 'protein'],
+  ['salted duck egg', '咸鸭蛋', 'dairy', 'protein'],
+  ['milk', '牛奶,鲜奶', 'dairy', 'dairy'],
+  ['yogurt', '酸奶', 'dairy', 'dairy'],
+  ['greek yogurt', '希腊酸奶', 'dairy', 'dairy protein'],
+  ['cheese', '奶酪,芝士', 'dairy', 'dairy'],
+  ['cheddar', '切达奶酪', 'dairy', 'dairy'],
+  ['mozzarella', '马苏里拉', 'dairy', 'dairy'],
+  ['parmesan', '帕玛森,芝士粉', 'dairy', 'dairy'],
+  ['cream cheese', '奶油奶酪', 'dairy', 'dairy'],
+  ['cream,heavy cream', '淡奶油', 'dairy', 'dairy fat'],
+  ['sour cream', '酸奶油', 'dairy', 'dairy'],
+  ['butter', '黄油', 'dairy', 'fat'],
+  ['condensed milk', '炼乳', 'dairy', 'dairy'],
+  ['oat milk', '燕麦奶', 'dairy', 'grain'],
+  ['almond milk', '杏仁奶', 'dairy', 'fat'],
+
+  /* soy */
+  ['tofu', '豆腐', 'soy', 'protein'],
+  ['firm tofu', '老豆腐,北豆腐', 'soy', 'protein'],
+  ['silken tofu', '嫩豆腐,内酯豆腐', 'soy', 'protein'],
+  ['fried tofu puff', '油豆腐,豆泡', 'soy', 'protein'],
+  ['dried tofu', '豆干,香干', 'soy', 'protein'],
+  ['tofu skin', '腐竹,豆皮', 'soy', 'protein'],
+  ['tempeh', '天贝', 'soy', 'protein'],
+  ['edamame', '毛豆', 'soy', 'protein veg'],
+  ['soy milk', '豆浆', 'soy', 'protein'],
+
+  /* grains + noodles */
+  ['rice', '大米,白米,米饭,米', 'grain', 'grain'],
+  ['jasmine rice', '香米', 'grain', 'grain'],
+  ['brown rice', '糙米', 'grain', 'grain'],
+  ['glutinous rice,sticky rice', '糯米', 'grain', 'grain'],
+  ['quinoa', '藜麦', 'grain', 'grain protein'],
+  ['oats,oatmeal,rolled oats', '燕麦,燕麦片', 'grain', 'grain'],
+  ['millet', '小米', 'grain', 'grain'],
+  ['barley', '大麦,薏米', 'grain', 'grain'],
+  ['flour', '面粉', 'grain', 'grain'],
+  ['noodles,noodle', '面条,挂面', 'grain', 'grain'],
+  ['ramen', '拉面', 'grain', 'grain'],
+  ['udon', '乌冬面', 'grain', 'grain'],
+  ['rice noodles', '米粉,河粉,粿条', 'grain', 'grain'],
+  ['glass noodles,vermicelli', '粉丝,细粉,红薯粉', 'grain', 'grain'],
+  ['pasta,spaghetti', '意面,意大利面,意粉', 'grain', 'grain'],
+  ['penne', '通心粉', 'grain', 'grain'],
+  ['lasagna sheets', '千层面皮', 'grain', 'grain'],
+  ['couscous', '古斯米', 'grain', 'grain'],
+  ['dumpling wrappers', '饺子皮', 'grain', 'grain'],
+  ['wonton wrappers', '馄饨皮', 'grain', 'grain'],
+  ['spring roll wrappers', '春卷皮', 'grain', 'grain'],
+  ['tortilla', '墨西哥饼皮,玉米饼', 'grain', 'grain'],
+  ['cereal', '麦片', 'grain', 'grain'],
+  ['breadcrumbs', '面包糠', 'grain', 'grain'],
+
+  /* bakery */
+  ['bread', '面包', 'bake', 'grain'],
+  ['whole wheat bread', '全麦面包', 'bake', 'grain'],
+  ['toast,sliced bread', '吐司', 'bake', 'grain'],
+  ['steamed bun,mantou', '馒头', 'bake', 'grain'],
+  ['bagel', '贝果', 'bake', 'grain'],
+  ['croissant', '可颂,牛角包', 'bake', 'grain fat'],
+  ['pita', '皮塔饼', 'bake', 'grain'],
+  ['cake', '蛋糕', 'bake', 'grain'],
+  ['scallion pancake', '葱油饼', 'bake', 'grain'],
+
+  /* beans + nuts */
+  ['black bean', '黑豆', 'bean', 'protein'],
+  ['kidney bean', '芸豆,红腰豆', 'bean', 'protein'],
+  ['chickpea', '鹰嘴豆', 'bean', 'protein'],
+  ['lentil', '扁豆,小扁豆', 'bean', 'protein'],
+  ['mung bean', '绿豆', 'bean', 'protein'],
+  ['red bean,adzuki', '红豆', 'bean', 'protein'],
+  ['soybean', '黄豆', 'bean', 'protein'],
+  ['peanut', '花生', 'bean', 'fat protein'],
+  ['almond', '杏仁', 'bean', 'fat'],
+  ['walnut', '核桃', 'bean', 'fat'],
+  ['cashew', '腰果', 'bean', 'fat'],
+  ['pistachio', '开心果', 'bean', 'fat'],
+  ['pine nut', '松子', 'bean', 'fat'],
+  ['sesame seed', '芝麻', 'bean', 'fat'],
+  ['sunflower seed', '瓜子,葵花籽', 'bean', 'fat'],
+  ['pumpkin seed', '南瓜子', 'bean', 'fat'],
+  ['chia seed', '奇亚籽', 'bean', 'fat'],
+  ['flaxseed', '亚麻籽', 'bean', 'fat'],
+  ['peanut butter', '花生酱', 'bean', 'fat protein'],
+
+  /* pantry */
+  ['soy sauce,light soy sauce', '生抽,酱油', 'pantry', ''],
+  ['dark soy sauce', '老抽', 'pantry', ''],
+  ['oyster sauce', '蚝油', 'pantry', ''],
+  ['vinegar,rice vinegar', '米醋,醋', 'pantry', ''],
+  ['black vinegar', '陈醋,香醋', 'pantry', ''],
+  ['cooking wine,shaoxing wine', '料酒,黄酒,绍兴酒', 'pantry', ''],
+  ['sesame oil', '香油,麻油', 'pantry', ''],
+  ['cooking oil,vegetable oil,oil', '食用油,菜籽油,油', 'pantry', ''],
+  ['olive oil', '橄榄油', 'pantry', ''],
+  ['salt', '盐,食盐', 'pantry', ''],
+  ['sugar', '白糖,砂糖,糖', 'pantry', ''],
+  ['rock sugar', '冰糖', 'pantry', ''],
+  ['brown sugar', '红糖', 'pantry', ''],
+  ['honey', '蜂蜜', 'pantry', ''],
+  ['chicken bouillon', '鸡精,味精', 'pantry', ''],
+  ['doubanjiang,chili bean paste', '豆瓣酱', 'pantry', ''],
+  ['sweet bean sauce', '甜面酱', 'pantry', ''],
+  ['hoisin sauce', '海鲜酱', 'pantry', ''],
+  ['chili oil', '辣椒油,红油', 'pantry', ''],
+  ['chili sauce,sriracha', '辣椒酱,蒜蓉辣酱', 'pantry', ''],
+  ['ketchup', '番茄酱', 'pantry', ''],
+  ['mayonnaise', '蛋黄酱,沙拉酱', 'pantry', ''],
+  ['mustard', '芥末', 'pantry', ''],
+  ['fish sauce', '鱼露', 'pantry', ''],
+  ['curry paste,curry sauce', '咖喱块,咖喱酱', 'pantry', ''],
+  ['tomato paste', '番茄膏', 'pantry', ''],
+  ['canned tomatoes', '番茄罐头', 'pantry', 'veg'],
+  ['coconut milk', '椰奶,椰浆', 'pantry', 'fat'],
+  ['stock,broth', '高汤,鸡汤', 'pantry', ''],
+  ['sesame paste,tahini', '芝麻酱', 'pantry', 'fat'],
+  ['fermented black beans', '豆豉', 'pantry', ''],
+  ['fermented tofu', '腐乳', 'pantry', ''],
+  ['pickled chili', '泡椒', 'pantry', ''],
+  ['cornstarch,corn starch', '淀粉,生粉,玉米淀粉', 'pantry', ''],
+  ['potato starch', '土豆淀粉', 'pantry', ''],
+  ['baking powder', '泡打粉', 'pantry', ''],
+  ['yeast', '酵母', 'pantry', ''],
+  ['vanilla extract', '香草精', 'pantry', ''],
+  ['jam', '果酱', 'pantry', ''],
+  ['maple syrup', '枫糖浆', 'pantry', ''],
+
+  /* spices */
+  ['black pepper,pepper', '黑胡椒,胡椒', 'spice', ''],
+  ['white pepper', '白胡椒', 'spice', ''],
+  ['sichuan peppercorn', '花椒', 'spice', ''],
+  ['star anise', '八角,大料', 'spice', ''],
+  ['cinnamon', '桂皮,肉桂', 'spice', ''],
+  ['clove', '丁香', 'spice', ''],
+  ['fennel seed', '小茴香', 'spice', ''],
+  ['cumin', '孜然', 'spice', ''],
+  ['chili flakes,chili powder', '辣椒面,辣椒粉', 'spice', ''],
+  ['five spice powder', '五香粉', 'spice', ''],
+  ['thirteen spice', '十三香', 'spice', ''],
+  ['bay leaf', '香叶,月桂叶', 'spice', ''],
+  ['dried chili', '干辣椒', 'spice', ''],
+  ['turmeric', '姜黄', 'spice', ''],
+  ['paprika', '红椒粉', 'spice', ''],
+  ['oregano', '牛至', 'spice', ''],
+  ['curry powder', '咖喱粉', 'spice', ''],
+  ['dried shiitake', '干香菇', 'spice', 'veg'],
+  ['goji berry', '枸杞', 'spice', 'fruit'],
+
+  /* frozen */
+  ['frozen dumplings', '速冻饺子', 'frozen', 'grain protein'],
+  ['frozen peas', '冷冻豌豆', 'frozen', 'veg'],
+  ['frozen berries', '冷冻莓果', 'frozen', 'fruit'],
+  ['ice cream', '冰淇淋,雪糕', 'frozen', 'dairy'],
+
+  /* drinks */
+  ['water,bottled water', '水,矿泉水', 'drink', ''],
+  ['sparkling water', '气泡水', 'drink', ''],
+  ['tea', '茶,茶叶', 'drink', ''],
+  ['green tea', '绿茶', 'drink', ''],
+  ['coffee', '咖啡', 'drink', ''],
+  ['orange juice', '橙汁', 'drink', 'fruit'],
+  ['juice', '果汁', 'drink', 'fruit'],
+  ['beer', '啤酒', 'drink', ''],
+  ['wine', '红酒,葡萄酒', 'drink', ''],
+  ['cola,soda', '可乐,汽水', 'drink', ''],
+  ['milk tea', '奶茶', 'drink', 'dairy'],
+
+  /* household */
+  ['paper towels', '厨房纸', 'home', ''],
+  ['toilet paper', '卫生纸,厕纸', 'home', ''],
+  ['dish soap', '洗洁精', 'home', ''],
+  ['laundry detergent', '洗衣液', 'home', ''],
+  ['trash bags', '垃圾袋', 'home', ''],
+  ['aluminium foil,foil', '锡纸,铝箔纸', 'home', ''],
+  ['plastic wrap,cling film', '保鲜膜', 'home', ''],
+  ['sponge', '海绵,洗碗布', 'home', ''],
+  ['ziplock bags', '密封袋', 'home', ''],
+];
+
+/* ── the recipe book ────────────────────────────────────────
+   Write a dish in either language and these are what land in the list. */
+const RECIPES = [
+  /* 家常菜 */
+  ['番茄炒蛋,西红柿炒鸡蛋,tomato and egg,tomato egg stir fry',
+   '3 番茄; 4 鸡蛋; 葱; 盐; 白糖; 食用油'],
+  ['宫保鸡丁,kung pao chicken,gong bao chicken',
+   '400克 鸡胸肉; 100克 花生; 干辣椒; 花椒; 葱; 姜; 大蒜; 生抽; 陈醋; 白糖; 淀粉'],
+  ['麻婆豆腐,mapo tofu',
+   '1盒 嫩豆腐; 150克 猪肉末; 豆瓣酱; 花椒; 葱; 大蒜; 淀粉; 生抽'],
+  ['红烧肉,braised pork belly',
+   '700克 五花肉; 冰糖; 生抽; 老抽; 料酒; 姜; 葱; 八角; 桂皮'],
+  ['红烧排骨,braised pork ribs',
+   '700克 排骨; 冰糖; 生抽; 老抽; 料酒; 姜; 葱; 八角'],
+  ['糖醋里脊,sweet and sour pork',
+   '500克 里脊; 番茄酱; 白糖; 米醋; 淀粉; 鸡蛋; 食用油'],
+  ['鱼香肉丝,yuxiang pork,fish fragrant pork',
+   '300克 里脊; 木耳; 胡萝卜; 竹笋; 豆瓣酱; 泡椒; 大蒜; 姜; 葱; 陈醋; 白糖; 淀粉'],
+  ['回锅肉,twice cooked pork',
+   '400克 五花肉; 卷心菜; 青椒; 豆瓣酱; 甜面酱; 葱; 姜; 大蒜'],
+  ['青椒肉丝,pork with green pepper',
+   '300克 里脊; 3 青椒; 生抽; 淀粉; 大蒜; 姜'],
+  ['蒜蓉西兰花,garlic broccoli',
+   '1 西兰花; 大蒜; 盐; 蚝油; 食用油'],
+  ['地三鲜,di san xian',
+   '2 茄子; 3 土豆; 2 青椒; 大蒜; 生抽; 白糖; 淀粉'],
+  ['干煸四季豆,dry fried green beans',
+   '500克 四季豆; 100克 猪肉末; 干辣椒; 花椒; 大蒜; 生抽'],
+  ['酸辣土豆丝,hot and sour potato',
+   '3 土豆; 干辣椒; 花椒; 陈醋; 大蒜; 葱'],
+  ['清蒸鱼,steamed fish',
+   '1条 鲈鱼; 姜; 葱; 生抽; 料酒; 香菜'],
+  ['可乐鸡翅,cola chicken wings',
+   '12 鸡翅; 可乐; 生抽; 姜; 葱; 料酒'],
+  ['三杯鸡,three cup chicken',
+   '600克 鸡腿肉; 香油; 生抽; 料酒; 姜; 大蒜; 罗勒; 冰糖'],
+  ['咖喱鸡,chicken curry',
+   '500克 鸡腿肉; 2 土豆; 2 胡萝卜; 1 洋葱; 咖喱块; 椰奶'],
+  ['土豆炖牛肉,beef and potato stew',
+   '600克 牛腩; 3 土豆; 2 胡萝卜; 1 洋葱; 生抽; 老抽; 八角; 桂皮; 姜'],
+  ['番茄牛腩,tomato beef brisket',
+   '700克 牛腩; 4 番茄; 1 洋葱; 番茄膏; 姜; 八角'],
+  ['酸菜鱼,sauerkraut fish',
+   '1条 草鱼; 酸菜; 泡椒; 花椒; 干辣椒; 姜; 大蒜; 淀粉; 鸡蛋'],
+  ['水煮肉片,boiled pork in chili oil',
+   '400克 里脊; 豆芽; 生菜; 豆瓣酱; 花椒; 干辣椒; 淀粉; 大蒜'],
+  ['蛋炒饭,egg fried rice,fried rice,炒饭',
+   '3碗 米饭; 3 鸡蛋; 葱; 豌豆; 胡萝卜; 生抽; 食用油'],
+  ['扬州炒饭,yangzhou fried rice',
+   '3碗 米饭; 3 鸡蛋; 虾仁; 火腿; 豌豆; 胡萝卜; 葱'],
+  ['炒面,fried noodles,chow mein',
+   '400克 面条; 200克 猪肉; 卷心菜; 胡萝卜; 豆芽; 葱; 生抽; 蚝油'],
+  ['牛肉面,beef noodle soup',
+   '600克 牛腩; 400克 面条; 小白菜; 葱; 姜; 八角; 桂皮; 豆瓣酱; 生抽'],
+  ['饺子,dumplings,水饺',
+   '饺子皮; 400克 猪肉末; 大白菜; 韭菜; 葱; 姜; 香油; 生抽'],
+  ['馄饨,wonton',
+   '馄饨皮; 300克 猪肉末; 虾仁; 葱; 姜; 香油; 紫菜'],
+  ['皮蛋瘦肉粥,century egg congee,congee,粥',
+   '1杯 大米; 2 皮蛋; 200克 里脊; 姜; 葱; 盐'],
+  ['冬瓜排骨汤,winter melon rib soup',
+   '500克 排骨; 1块 冬瓜; 姜; 枸杞; 盐'],
+  ['西红柿鸡蛋汤,tomato egg soup',
+   '2 番茄; 2 鸡蛋; 葱; 香油; 盐; 淀粉'],
+  ['紫菜蛋花汤,seaweed egg drop soup',
+   '紫菜; 2 鸡蛋; 虾皮; 葱; 香油'],
+  ['蒸蛋羹,steamed egg custard',
+   '3 鸡蛋; 生抽; 香油; 葱'],
+  ['京酱肉丝,shredded pork in bean sauce',
+   '400克 里脊; 甜面酱; 葱; 豆皮; 淀粉; 料酒'],
+  ['蚝油生菜,lettuce in oyster sauce',
+   '2 生菜; 蚝油; 大蒜; 食用油'],
+  ['上汤娃娃菜,baby cabbage in broth',
+   '4 娃娃菜; 皮蛋; 高汤; 枸杞; 大蒜'],
+  ['孜然羊肉,cumin lamb',
+   '500克 羊肉; 孜然; 辣椒面; 洋葱; 香菜; 大蒜'],
+  ['凉拌黄瓜,smashed cucumber salad',
+   '2 黄瓜; 大蒜; 陈醋; 香油; 辣椒油; 生抽'],
+  ['麻辣香锅,mala xiang guo',
+   '莲藕; 土豆; 西兰花; 金针菇; 午餐肉; 虾; 豆瓣酱; 花椒; 干辣椒'],
+  ['火锅,hot pot',
+   '牛肉; 羊肉; 虾; 鱼丸; 娃娃菜; 金针菇; 豆腐; 粉丝; 香菜; 芝麻酱'],
+  ['葱油拌面,scallion oil noodles',
+   '400克 面条; 葱; 生抽; 老抽; 白糖; 食用油'],
+  ['白灼虾,boiled shrimp',
+   '500克 虾; 姜; 葱; 生抽'],
+  ['蒜蓉粉丝蒸虾,steamed shrimp with garlic vermicelli',
+   '500克 虾; 粉丝; 大蒜; 生抽; 葱'],
+
+  /* western + everyday */
+  ['spaghetti bolognese,bolognese,肉酱意面',
+   '400g pasta; 500g ground beef; 1 onion; 2 carrot; celery; canned tomatoes; tomato paste; garlic; olive oil; parmesan'],
+  ['carbonara,卡邦尼,培根蛋面',
+   '400g spaghetti; 200g bacon; 3 egg; parmesan; black pepper'],
+  ['pesto pasta,青酱意面',
+   '400g pasta; basil; pine nut; parmesan; olive oil; garlic'],
+  ['mac and cheese,芝士通心粉',
+   '400g penne; cheddar; milk; butter; flour; breadcrumbs'],
+  ['lasagna,千层面',
+   'lasagna sheets; 500g ground beef; canned tomatoes; mozzarella; parmesan; milk; butter; flour; onion; garlic'],
+  ['caesar salad,凯撒沙拉',
+   'romaine; parmesan; bread; chicken breast; mayonnaise; lemon; garlic'],
+  ['greek salad,希腊沙拉',
+   'cucumber; tomato; red onion; olive; cheese; olive oil; oregano'],
+  ['roast chicken,烤鸡',
+   '1 whole chicken; potato; carrot; onion; rosemary; thyme; butter; lemon'],
+  ['beef stew,炖牛肉',
+   '800g beef brisket; potato; carrot; onion; celery; tomato paste; stock; bay leaf'],
+  ['chili,chili con carne,辣肉酱',
+   '500g ground beef; kidney bean; canned tomatoes; onion; bell pepper; garlic; cumin; paprika'],
+  ['tacos,墨西哥卷',
+   'tortilla; 500g ground beef; lettuce; tomato; cheddar; sour cream; onion; lime; cumin'],
+  ['burrito bowl',
+   'rice; black bean; chicken breast; corn; avocado; lettuce; cheddar; lime; sour cream'],
+  ['burger,汉堡',
+   'bread; 500g ground beef; cheddar; lettuce; tomato; onion; ketchup; mustard'],
+  ['pizza,margherita pizza,披萨',
+   'flour; yeast; canned tomatoes; mozzarella; basil; olive oil'],
+  ['stir fry,蔬菜炒',
+   'broccoli; carrot; bell pepper; snow pea; garlic; ginger; soy sauce; sesame oil; rice'],
+  ['omelette,煎蛋卷',
+   '3 egg; cheese; butter; mushroom; spinach; milk'],
+  ['pancakes,松饼',
+   'flour; 2 egg; milk; butter; baking powder; maple syrup; banana'],
+  ['oatmeal,porridge,燕麦粥',
+   'oats; milk; banana; blueberry; walnut; honey'],
+  ['avocado toast,牛油果吐司',
+   'toast; 2 avocado; 2 egg; lemon; chili flakes'],
+  ['grilled cheese,芝士三明治',
+   'bread; cheddar; butter; tomato'],
+  ['tomato soup,番茄汤',
+   'canned tomatoes; onion; garlic; cream; basil; stock; bread'],
+  ['chicken noodle soup,鸡汤面',
+   'chicken thigh; noodles; carrot; celery; onion; parsley; stock'],
+  ['shepherds pie,牧羊人派',
+   '500g lamb; potato; carrot; frozen peas; onion; butter; milk; tomato paste'],
+  ['salmon and vegetables,烤三文鱼',
+   '2 salmon; asparagus; potato; lemon; olive oil; garlic; dill'],
+  ['poke bowl',
+   'rice; tuna; avocado; cucumber; edamame; seaweed; soy sauce; sesame seed'],
+  ['sushi,寿司',
+   'sushi rice; salmon; cucumber; avocado; seaweed; rice vinegar; soy sauce'],
+  ['ramen,日式拉面',
+   'ramen; pork belly; 2 egg; bok choy; scallion; corn; seaweed; stock; soy sauce'],
+  ['pad thai,泰式炒河粉',
+   'rice noodles; shrimp; 2 egg; bean sprout; peanut; lime; fish sauce; sugar; garlic'],
+  ['green curry,泰式绿咖喱',
+   'chicken thigh; coconut milk; curry paste; eggplant; bell pepper; basil; fish sauce; rice'],
+  ['shakshuka',
+   'canned tomatoes; 4 egg; onion; bell pepper; garlic; cumin; paprika; bread'],
+  ['hummus,鹰嘴豆泥',
+   'chickpea; tahini; lemon; garlic; olive oil; pita'],
+  ['fried egg and toast,煎蛋吐司',
+   '2 egg; toast; butter; tomato'],
+  ['smoothie,奶昔',
+   'banana; frozen berries; yogurt; oats; honey; milk'],
+];
+
+/* 菜篮 Basket — a weekly grocery list that sorts itself, takes dishes in
+   English or Chinese and turns them into ingredients, and keeps a record of
+   what you actually ate so the week can be judged on balance rather than
+   memory. Everything lives in localStorage; there is no server. */
+
+const STORE_KEY = 'basket.v1';
+
+/* ── the lexicon ───────────────────────────────────────────────
+   FOODS is a table; this turns it into objects plus a flat alias index
+   sorted longest-first, so 大白菜 beats 白菜 and "green onion" beats
+   "onion" no matter which order they were written in. */
+const CJK_RE = /[㐀-鿿]/;
+const hasCJK = s => CJK_RE.test(s || '');
+const esc = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+function plurals(w) {
+  const out = [w];
+  if (/[^aeiou]y$/.test(w)) out.push(w.slice(0, -1) + 'ies');
+  else if (/(s|sh|ch|x|z)$/.test(w)) out.push(w + 'es');
+  else if (/[^aeiou]o$/.test(w)) out.push(w + 'es', w + 's');  /* tomatoes, mangos */
+  else if (!/s$/.test(w)) out.push(w + 's');
+  return out;
+}
+
+const FOOD_LIST = FOODS.map(([en, zh, aisle, groups]) => ({
+  id: en.split(',')[0].trim(),
+  en: en.split(',').map(s => s.trim()).filter(Boolean),
+  zh: zh.split(',').map(s => s.trim()).filter(Boolean),
+  aisle,
+  groups: groups.split(' ').map(s => s.trim()).filter(Boolean),
+}));
+const FOOD_BY_ID = Object.fromEntries(FOOD_LIST.map(f => [f.id, f]));
+
+const ALIASES = [];
+for (const f of FOOD_LIST) {
+  const seen = new Set();
+  for (const n of f.en) for (const p of plurals(n.toLowerCase())) {
+    if (seen.has(p)) continue; seen.add(p);
+    ALIASES.push({ a: p, food: f, cjk: false, re: new RegExp('\\b' + esc(p) + '\\b', 'gi') });
+  }
+  for (const n of f.zh) {
+    if (seen.has(n)) continue; seen.add(n);
+    ALIASES.push({ a: n, food: f, cjk: true, re: null });
+  }
+}
+ALIASES.sort((x, y) => y.a.length - x.a.length);
+
+const RECIPE_LIST = RECIPES.map(([names, ing]) => ({
+  id: names.split(',')[0].trim(),
+  names: names.split(',').map(s => s.trim()).filter(Boolean),
+  ingredients: ing.split(';').map(s => s.trim()).filter(Boolean),
+}));
+const RECIPE_BY_ID = Object.fromEntries(RECIPE_LIST.map(r => [r.id, r]));
+const RECIPE_ALIASES = [];
+for (const r of RECIPE_LIST) for (const n of r.names) {
+  RECIPE_ALIASES.push({ a: n.toLowerCase(), recipe: r, cjk: hasCJK(n) });
+}
+RECIPE_ALIASES.sort((x, y) => y.a.length - x.a.length);
+
+const AISLE_BY_ID = Object.fromEntries(AISLES.map(a => [a.id, a]));
+const GROUP_BY_ID = Object.fromEntries(GROUPS.map(g => [g.id, g]));
+const MEAL_BY_ID  = Object.fromEntries(MEALS.map(m => [m.id, m]));
+
+/* ── reading what you typed ────────────────────────────────── */
+const normalize = s => (s || '')
+  .toLowerCase()
+  .replace(/[，,。、；;!！?？"'“”‘’()（）\[\]【】]/g, ' ')
+  .replace(/\s+/g, ' ')
+  .trim();
+
+const UNIT_LIST = [
+  '个','颗','把','根','条','片','块','盒','包','袋','瓶','罐','斤','两','克','千克','公斤',
+  '杯','碗','只','头','棵','串','扎','份',
+  'g','kg','ml','l','lb','lbs','oz','cup','cups','tbsp','tsp','bunch','bunches','pack','packs',
+  'can','cans','bottle','bottles','box','boxes','dozen','clove','cloves','piece','pieces','slice','slices',
+];
+/* longest first, or the alternation would let "l" swallow the l of "lbs" */
+const UNITS = UNIT_LIST.slice().sort((a, b) => b.length - a.length).join('|');
+const NUM = '\\d+(?:\\.\\d+)?(?:\\s*[-~]\\s*\\d+(?:\\.\\d+)?)?|[半一二两三四五六七八九十]+';
+/* a number only counts as a quantity when a unit, a space or a Chinese
+   character follows it — otherwise "7up" would arrive as 7 of "up" */
+const LEAD_QTY = new RegExp('^\\s*(' + NUM + ')(?:\\s*(' + UNITS + ')(?![a-z])|\\s+|(?=[㐀-鿿]))\\s*(?:of\\s+)?', 'i');
+const TAIL_QTY = new RegExp('\\s*(\\d+(?:\\.\\d+)?)\\s*(' + UNITS + ')\\s*$', 'i');
+
+/* "2 lbs chicken breast" and "鸡胸肉 500克" both come back as
+   { qty: '2 lbs' | '500克', name: 'chicken breast' | '鸡胸肉' }. */
+function splitQty(raw) {
+  const text = (raw || '').trim();
+  let m = text.match(LEAD_QTY);
+  if (m && m[0].trim() && text.slice(m[0].length).trim()) {
+    return { qty: m[0].trim(), name: text.slice(m[0].length).trim() };
+  }
+  m = text.match(TAIL_QTY);
+  if (m && text.slice(0, m.index).trim()) {
+    return { qty: m[0].trim(), name: text.slice(0, m.index).trim() };
+  }
+  return { qty: '', name: text };
+}
+
+/* longest alias that is exactly, or sits inside, the text */
+function matchFood(text) {
+  const t = normalize(text);
+  if (!t) return null;
+  for (const e of ALIASES) if (e.a === t) return e.food;
+  for (const e of ALIASES) {
+    if (e.cjk ? t.includes(e.a) : new RegExp('\\b' + esc(e.a) + '\\b').test(t)) return e.food;
+  }
+  return null;
+}
+
+/* Every distinct food named anywhere in the text, longest names first.
+   minCjk raises the bar for Chinese aliases: single characters (油, 蛋, 鱼)
+   turn up inside compound words that are one ingredient, not two. */
+function scanFoods(text, minCjk) {
+  let t = normalize(text);
+  const found = [];
+  for (const e of ALIASES) {
+    if (found.includes(e.food)) continue;
+    if (e.cjk && e.a.length < (minCjk || 1)) continue;
+    if (e.cjk) {
+      if (t.includes(e.a)) { found.push(e.food); t = t.split(e.a).join(' '); }
+    } else if (e.re.test(t)) {
+      e.re.lastIndex = 0;
+      found.push(e.food);
+      t = t.replace(e.re, ' ');
+    }
+    e.re && (e.re.lastIndex = 0);
+  }
+  return found;
+}
+
+function matchRecipe(text) {
+  const t = normalize(text);
+  if (!t) return null;
+  for (const e of RECIPE_ALIASES) if (e.a === t) return e.recipe;
+  for (const e of RECIPE_ALIASES) if (t.length > e.a.length && t.includes(e.a)) return e.recipe;
+  return null;
+}
+
+const COOKED_RE = /salad|soup|stew|roast|grill|bake[d]?|fried|fry|sandwich|bowl|curry|with /i;
+
+/* An unknown dish is still a dish when it names more than one food. Chinese
+   says so by construction — 青椒土豆丝 is two ingredients and a knife cut —
+   so two is enough there; English needs a cooking word or a third food before
+   "apple banana" is taken for a recipe. */
+function improviseDish(text) {
+  const foods = scanFoods(text, 2);
+  if (foods.length < 2) return null;
+  if (hasCJK(text)) return foods;
+  if (COOKED_RE.test(text) || foods.length >= 3) return foods;
+  return null;
+}
+
+/* what the other language calls it, for the subtitle under an item */
+function otherName(food, typed) {
+  if (!food) return '';
+  const wantZh = !hasCJK(typed);
+  const list = wantZh ? food.zh : food.en;
+  const alt = list && list.length ? list[0] : '';
+  return normalize(alt) === normalize(typed) ? '' : alt;
+}
+
+/* ── classification, with anything you taught it winning ────── */
+function classify(name) {
+  const learned = store.learned[normalize(name)];
+  const food = matchFood(name);
+  if (learned) return { aisle: learned.aisle, groups: learned.groups.slice(), food };
+  if (food) return { aisle: food.aisle, groups: food.groups.slice(), food };
+  return { aisle: 'other', groups: [], food: null };
+}
+
+/* Bought as fruit, used as seasoning: a wedge of lemon in the roast chicken is
+   not a serving of fruit, so these score nothing when they turn up inside a
+   recipe. On the shopping list they are ordinary foods. */
+const GARNISH = new Set(['lemon', 'lime', 'goji berry', 'sesame seed']);
+
+/* the food groups one written thing puts on your plate */
+function groupsOf(text) {
+  const r = matchRecipe(text);
+  const set = new Set();
+  if (r) {
+    for (const ing of r.ingredients) {
+      const c = classify(splitQty(ing).name);
+      if (c.food && GARNISH.has(c.food.id)) continue;
+      for (const g of c.groups) set.add(g);
+    }
+    return [...set];
+  }
+  const improvised = improviseDish(text);
+  if (improvised) {
+    for (const f of improvised) for (const g of f.groups) set.add(g);
+    if (set.size) return [...set];
+  }
+  return classify(splitQty(text).name).groups;
+}
+
+/* ── dates ─────────────────────────────────────────────────── */
+const DAY_NAMES = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+const DAY_ZH    = ['一', '二', '三', '四', '五', '六', '日'];
+const key     = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+const fromKey = k => { const [y, m, d] = k.split('-').map(Number); return new Date(y, m - 1, d); };
+const addDays = (d, n) => { const c = new Date(d); c.setDate(c.getDate() + n); return c; };
+const today   = () => { const d = new Date(); d.setHours(0, 0, 0, 0); return d; };
+const monday  = d => addDays(d, -((d.getDay() + 6) % 7));
+const weekDays = wk => Array.from({ length: 7 }, (_, i) => addDays(wk, i));
+const fmtDay  = d => d.toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
+
+/* ── store ─────────────────────────────────────────────────── */
+const defaultTargets = () => Object.fromEntries(GROUPS.map(g => [g.id, g.perDay]));
+
+let store;
+function load() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(STORE_KEY));
+    if (raw && raw.weeks) {
+      store = raw;
+      store.settings = Object.assign({ targets: defaultTargets(), hideStaples: true }, store.settings);
+      store.settings.targets = Object.assign(defaultTargets(), store.settings.targets);
+      store.learned = store.learned || {};
+      store.meals = store.meals || {};
+      return;
+    }
+  } catch (e) { /* corrupt or blocked storage — start clean */ }
+  store = { version: 1, settings: { targets: defaultTargets(), hideStaples: true }, learned: {}, weeks: {}, meals: {} };
+}
+function save() {
+  try { localStorage.setItem(STORE_KEY, JSON.stringify(store)); }
+  catch (e) { console.warn('Could not save — storage unavailable.', e); }
+}
+const uid = () => Math.random().toString(36).slice(2, 9);
+
+function weekRec(k) {
+  if (!store.weeks[k]) store.weeks[k] = { items: [] };
+  store.weeks[k].items = store.weeks[k].items || [];
+  return store.weeks[k];
+}
+const weekPeek = k => store.weeks[k] || null;
+
+function mealRec(dayK) {
+  if (!store.meals[dayK]) store.meals[dayK] = {};
+  const d = store.meals[dayK];
+  for (const m of MEALS) d[m.id] = d[m.id] || [];
+  return d;
+}
+const mealPeek = (dayK, id) => ((store.meals[dayK] || {})[id]) || [];
+const dayLogged = dayK => MEALS.some(m => mealPeek(dayK, m.id).length);
+
+/* ── adding to the list ────────────────────────────────────────
+   One entry point for everything typed: a dish explodes into ingredients,
+   anything else is an item, and a food already on the list gains a source
+   rather than a duplicate row. */
+function addToList(weekK, raw, fromDish) {
+  const text = (raw || '').trim();
+  if (!text) return null;
+  const rec = weekRec(weekK);
+  const { qty, name } = splitQty(text);
+  const cls = classify(name);
+  const canonical = cls.food ? cls.food.id : normalize(name);
+
+  const existing = rec.items.find(it => (it.foodId || normalize(it.name)) === canonical);
+  if (existing) {
+    if (fromDish && !existing.from.includes(fromDish)) existing.from.push(fromDish);
+    if (qty && !existing.qty) existing.qty = qty;
+    else if (qty && existing.qty && existing.qty !== qty) existing.qty = existing.qty + ' + ' + qty;
+    existing.got = false;
+    return existing;
+  }
+  const item = {
+    id: uid(), name, qty, aisle: cls.aisle, groups: cls.groups,
+    foodId: cls.food ? cls.food.id : '', got: false, pinned: false,
+    from: fromDish ? [fromDish] : [], note: '',
+    /* salt and soy sauce arrive with every dish and are already in your
+       kitchen — they are folded away until you say otherwise */
+    staple: !!fromDish && (cls.aisle === 'pantry' || cls.aisle === 'spice') && !cls.groups.length,
+  };
+  rec.items.push(item);
+  return item;
+}
+
+/* returns { kind: 'dish'|'items', dish, added: [items] } */
+function addOne(weekK, text) {
+  const recipe = matchRecipe(text);
+  if (recipe) {
+    const added = recipe.ingredients.map(ing => addToList(weekK, ing, recipe.id)).filter(Boolean);
+    return { kind: 'dish', dish: recipe.id, added };
+  }
+  const improvised = improviseDish(text);
+  if (improvised) {
+    const added = improvised
+      .map(f => addToList(weekK, hasCJK(text) ? (f.zh[0] || f.en[0]) : f.en[0], text))
+      .filter(Boolean);
+    return { kind: 'dish', dish: text, added, improvised: true };
+  }
+  const item = addToList(weekK, text, '');
+  return { kind: 'items', added: item ? [item] : [] };
+}
+
+/* A comma, a 、 or a newline separates things; each piece is then a dish or an
+   item on its own terms. */
+function addTyped(weekK, raw) {
+  const text = (raw || '').trim();
+  if (!text) return null;
+  const parts = text.split(/[,，、;；\n]+/).map(s => s.trim()).filter(Boolean);
+  if (parts.length === 1) return addOne(weekK, parts[0]);
+
+  const added = [];
+  let dishes = 0, dish = '';
+  for (const p of parts) {
+    const r = addOne(weekK, p);
+    added.push(...r.added);
+    if (r.kind === 'dish') { dishes++; dish = r.dish; }
+  }
+  return dishes === parts.length && dishes === 1
+    ? { kind: 'dish', dish, added }
+    : { kind: 'items', added, dishes };
+}
+
+/* ── weekly balance ────────────────────────────────────────────
+   Each thing eaten scores one serving of every group it contains, capped at
+   two per group per meal so a single enormous salad cannot carry a week. */
+const PER_MEAL_CAP = 2;
+
+function mealServings(dayK, mealId) {
+  const counts = {};
+  for (const entry of mealPeek(dayK, mealId)) {
+    for (const g of groupsOf(entry.text)) {
+      counts[g] = Math.min(PER_MEAL_CAP, (counts[g] || 0) + 1);
+    }
+  }
+  return counts;
+}
+function dayServings(dayK) {
+  const total = {};
+  for (const m of MEALS) {
+    const c = mealServings(dayK, m.id);
+    for (const g in c) total[g] = (total[g] || 0) + c[g];
+  }
+  return total;
+}
+function weekReport(wk) {
+  const days = weekDays(wk).map(key);
+  const t = today();
+  const elapsed = days.filter(k => fromKey(k) <= t).length;
+  const logged = days.filter(dayLogged);
+  const byDay = Object.fromEntries(days.map(k => [k, dayServings(k)]));
+  const totals = {};
+  for (const g of GROUPS) totals[g.id] = days.reduce((s, k) => s + (byDay[k][g.id] || 0), 0);
+
+  /* judge a week in progress on the days that have happened */
+  const paceDays = Math.max(1, Math.min(7, elapsed || 7));
+  const goals = {}, paceGoals = {};
+  for (const g of GROUPS) {
+    goals[g.id] = store.settings.targets[g.id] * 7;
+    paceGoals[g.id] = store.settings.targets[g.id] * paceDays;
+  }
+  let earned = 0, possible = 0;
+  for (const g of GROUPS) {
+    earned += Math.min(totals[g.id], paceGoals[g.id]);
+    possible += paceGoals[g.id];
+  }
+  const pct = possible ? Math.round(earned / possible * 100) : 0;
+  return { days, elapsed, logged, byDay, totals, goals, paceGoals, paceDays, pct };
+}
+
+/* ── DOM plumbing ──────────────────────────────────────────── */
+const $  = s => document.querySelector(s);
+const $$ = s => Array.from(document.querySelectorAll(s));
+const el = (tag, cls, txt) => {
+  const n = document.createElement(tag);
+  if (cls) n.className = cls;
+  if (txt != null) n.textContent = txt;
+  return n;
+};
+let toastTimer;
+function toast(msg) {
+  const t = $('#toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2600);
+}
+function copyText(text, msg) {
+  const done = () => toast(msg);
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(done, () => fallback());
+  } else fallback();
+  function fallback() {
+    const ta = el('textarea');
+    ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.append(ta); ta.select();
+    try { document.execCommand('copy'); done(); } catch (e) { toast('Could not copy'); }
+    ta.remove();
+  }
+}
+
+/* ── state ─────────────────────────────────────────────────── */
+let curWeek = monday(today());
+let curDay  = today();
+
+const weekLabel = wk => {
+  const end = addDays(wk, 6);
+  const now = monday(today());
+  const diff = Math.round((wk - now) / 604800000);
+  const rel = diff === 0 ? ' · this week' : diff === -1 ? ' · last week' : diff === 1 ? ' · next week' : '';
+  return `${fmtDay(wk)} – ${fmtDay(end)}${rel}`;
+};
+
+function setWeek(wk) {
+  curWeek = monday(wk);
+  if (monday(curDay) - curWeek !== 0) curDay = curWeek;
+  renderAll();
+}
+
+function renderAll() {
+  renderList();
+  renderMeals();
+  renderBalance();
+  renderSetup();
+}
+
+/* ── tabs ──────────────────────────────────────────────────── */
+$('#tabs').addEventListener('click', e => {
+  const b = e.target.closest('.tab');
+  if (!b) return;
+  $$('.tab').forEach(t => t.classList.toggle('is-active', t === b));
+  $$('.view').forEach(v => v.classList.toggle('is-active', v.id === 'view-' + b.dataset.view));
+  window.scrollTo(0, 0);
+});
+const showTab = name => { const b = $$('.tab').find(t => t.dataset.view === name); if (b) b.click(); };
+
+/* ─────────────────────────── LIST VIEW ────────────────────── */
+const isThisWeek = () => +curWeek === +monday(today());
+function renderList() {
+  const wk = key(curWeek);
+  const items = (weekPeek(wk) || { items: [] }).items;
+  $('#weekLabel').textContent = weekLabel(curWeek);
+  $('#goThisWeek').hidden = isThisWeek();
+
+  const hiding = store.settings.hideStaples !== false;
+  const folded = hiding ? items.filter(i => i.staple) : [];
+  const shown  = hiding ? items.filter(i => !i.staple) : items;
+
+  const got = shown.filter(i => i.got).length;
+  $('#listBar').style.width = (shown.length ? got / shown.length * 100 : 0) + '%';
+  $('#listCount').textContent = items.length
+    ? `${got} of ${shown.length} in the basket` + (folded.length ? ` · ${folded.length} folded away` : '')
+    : 'nothing on the list yet — type a dish above and see';
+
+  const host = $('#sections');
+  host.innerHTML = '';
+
+  for (const aisle of AISLES) {
+    const mine = shown.filter(i => i.aisle === aisle.id);
+    if (!mine.length) continue;
+    mine.sort((a, b) => (a.got === b.got) ? 0 : a.got ? 1 : -1);
+
+    const sec = el('section', 'aisle');
+    const head = el('div', 'aislehead');
+    head.append(el('h3', null, aisle.en));
+    head.append(el('span', 'zh', aisle.zh));
+    head.append(el('span', 'count', `${mine.filter(i => !i.got).length}/${mine.length}`));
+    sec.append(head);
+
+    const ul = el('ul', 'items');
+    for (const it of mine) ul.append(itemRow(wk, it));
+    sec.append(ul);
+    host.append(sec);
+  }
+
+  const fold = $('#staples');
+  fold.innerHTML = '';
+  if (folded.length) {
+    fold.append(el('span', null,
+      `${folded.length} seasoning${folded.length === 1 ? '' : 's'} the dishes asked for — ` +
+      `${folded.slice(0, 5).map(i => i.name).join('、')}${folded.length > 5 ? '…' : ''} — folded away.`));
+    const b = el('button', 'ghost', 'Show them 显示');
+    b.addEventListener('click', () => { store.settings.hideStaples = false; save(); renderList(); });
+    fold.append(b);
+  } else if (!hiding && items.some(i => i.staple)) {
+    fold.append(el('span', null, 'Seasonings are showing.'));
+    const b = el('button', 'ghost', 'Fold them away 折叠');
+    b.addEventListener('click', () => { store.settings.hideStaples = true; save(); renderList(); });
+    fold.append(b);
+  }
+}
+
+function itemRow(wk, it) {
+  const li = el('li', 'item' + (it.got ? ' is-got' : ''));
+
+  const cb = el('input');
+  cb.type = 'checkbox';
+  cb.checked = !!it.got;
+  cb.setAttribute('aria-label', 'Got ' + it.name);
+  cb.addEventListener('change', () => { it.got = cb.checked; save(); renderList(); });
+  li.append(cb);
+
+  const mid = el('div', 'imid');
+  const name = el('input', 'iname');
+  name.value = it.name;
+  name.setAttribute('aria-label', 'Item name');
+  name.addEventListener('change', () => {
+    const v = name.value.trim();
+    if (!v) { removeItem(wk, it.id); return; }
+    const { qty, name: n } = splitQty(v);
+    it.name = n;
+    if (qty) it.qty = qty;
+    const cls = classify(n);
+    it.foodId = cls.food ? cls.food.id : '';
+    /* a hand-picked section sticks; otherwise the new name decides */
+    if (!it.pinned) { it.aisle = cls.aisle; it.groups = cls.groups; }
+    save(); renderList();
+  });
+  mid.append(name);
+
+  const sub = el('div', 'isub');
+  const alt = otherName(FOOD_BY_ID[it.foodId], it.name);
+  if (alt) sub.append(el('span', 'alt', alt));
+  for (const g of it.groups) {
+    const dot = el('span', 'gdot');
+    dot.style.background = GROUP_BY_ID[g] ? GROUP_BY_ID[g].color : 'var(--line)';
+    dot.title = GROUP_BY_ID[g] ? GROUP_BY_ID[g].en : g;
+    sub.append(dot);
+  }
+  if (it.from.length) sub.append(el('span', 'from', 'for ' + it.from.join(', ')));
+  if (it.note) sub.append(el('span', 'note', it.note));
+  if (sub.childNodes.length) mid.append(sub);
+  li.append(mid);
+
+  const qty = el('input', 'iqty');
+  qty.value = it.qty || '';
+  qty.placeholder = 'qty';
+  qty.setAttribute('aria-label', 'Quantity');
+  qty.addEventListener('change', () => { it.qty = qty.value.trim(); save(); });
+  li.append(qty);
+
+  const more = el('button', 'imore', '⋯');
+  more.title = 'Edit this item';
+  more.setAttribute('aria-label', 'Edit this item');
+  li.append(more);
+
+  const panel = el('div', 'ipanel');
+  more.addEventListener('click', () => {
+    panel.classList.toggle('open');
+    if (panel.classList.contains('open') && !panel.childNodes.length) fillPanel(panel, wk, it);
+  });
+  li.append(panel);
+  return li;
+}
+
+function fillPanel(panel, wk, it) {
+  const row1 = el('div', 'prow');
+  row1.append(el('label', null, 'Section 分类'));
+  const sel = el('select');
+  for (const a of AISLES) {
+    const o = el('option', null, `${a.en} ${a.zh}`);
+    o.value = a.id;
+    if (a.id === it.aisle) o.selected = true;
+    sel.append(o);
+  }
+  sel.addEventListener('change', () => {
+    it.aisle = sel.value; it.pinned = true;
+    learn(it);
+    save(); renderList();
+  });
+  row1.append(sel);
+  panel.append(row1);
+
+  const row2 = el('div', 'prow');
+  row2.append(el('label', null, 'Counts as 营养'));
+  const chips = el('div', 'gchips');
+  for (const g of GROUPS) {
+    const b = el('button', 'gchip' + (it.groups.includes(g.id) ? ' on' : ''), `${g.en} ${g.zh}`);
+    b.style.setProperty('--gc', g.color);
+    b.addEventListener('click', () => {
+      const i = it.groups.indexOf(g.id);
+      if (i < 0) it.groups.push(g.id); else it.groups.splice(i, 1);
+      b.classList.toggle('on');
+      it.pinned = true;
+      learn(it);
+      save(); renderList();
+    });
+    chips.append(b);
+  }
+  row2.append(chips);
+  panel.append(row2);
+
+  const row3 = el('div', 'prow');
+  row3.append(el('label', null, 'Note 备注'));
+  const note = el('input');
+  note.value = it.note || '';
+  note.placeholder = 'ripe ones, the small pack…';
+  note.addEventListener('change', () => { it.note = note.value.trim(); save(); renderList(); });
+  row3.append(note);
+  panel.append(row3);
+
+  const row4 = el('div', 'prow');
+  const del = el('button', 'ghost danger', 'Remove from list');
+  del.addEventListener('click', () => removeItem(wk, it.id));
+  row4.append(del);
+  panel.append(row4);
+}
+
+/* a section or group you picked by hand is remembered for next time */
+function learn(it) {
+  store.learned[normalize(it.name)] = { aisle: it.aisle, groups: it.groups.slice() };
+}
+function removeItem(wk, id) {
+  const rec = weekRec(wk);
+  rec.items = rec.items.filter(i => i.id !== id);
+  save(); renderList();
+}
+
+/* ── the add bar ───────────────────────────────────────────── */
+function submitAdd() {
+  const input = $('#addInput');
+  const res = addTyped(key(curWeek), input.value);
+  if (!res) return;
+  save();
+  input.value = '';
+  renderSuggests('');
+  renderList(); renderSetup();
+  if (res.kind === 'dish') {
+    toast(`${res.dish} → ${res.added.length} ingredient${res.added.length === 1 ? '' : 's'}` +
+          (res.improvised ? ' (guessed from the name)' : ''));
+  } else {
+    toast(res.added.length === 1 ? `Added ${res.added[0].name}` : `Added ${res.added.length} items`);
+  }
+  input.focus();
+}
+$('#addBtn').addEventListener('click', submitAdd);
+$('#addInput').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); submitAdd(); } });
+$('#addInput').addEventListener('input', e => renderSuggests(e.target.value));
+
+/* live suggestions: dishes first, then foods — tap to fill */
+function renderSuggests(raw) {
+  const host = $('#suggests');
+  host.innerHTML = '';
+  const t = normalize(raw);
+  if (t.length < 1) return;
+
+  const hits = [];
+  for (const r of RECIPE_LIST) {
+    if (r.names.some(n => normalize(n).includes(t))) hits.push({ label: r.names[0], sub: 'dish 菜', text: r.names[0] });
+    if (hits.length >= 4) break;
+  }
+  for (const f of FOOD_LIST) {
+    if (hits.length >= 8) break;
+    const all = f.en.concat(f.zh);
+    if (all.some(n => normalize(n).includes(t))) {
+      const label = hasCJK(raw) ? (f.zh[0] || f.en[0]) : f.en[0];
+      hits.push({ label, sub: AISLE_BY_ID[f.aisle].zh, text: label });
+    }
+  }
+  for (const h of hits.slice(0, 8)) {
+    const b = el('button', 'sug');
+    b.append(el('b', null, h.label));
+    b.append(el('i', null, h.sub));
+    b.addEventListener('click', () => {
+      const input = $('#addInput');
+      const lead = splitQty(input.value).qty;
+      input.value = (lead ? lead + ' ' : '') + h.text;
+      submitAdd();
+    });
+    host.append(b);
+  }
+}
+
+/* ── list-wide actions ─────────────────────────────────────── */
+$('#weekPrev').addEventListener('click', () => setWeek(addDays(curWeek, -7)));
+$('#weekNext').addEventListener('click', () => setWeek(addDays(curWeek, 7)));
+$('#goThisWeek').addEventListener('click', () => { curDay = today(); setWeek(today()); });
+
+$('#carryOver').addEventListener('click', () => {
+  const prev = weekPeek(key(addDays(curWeek, -7)));
+  if (!prev || !prev.items.length) return toast('Last week had no list');
+  const left = prev.items.filter(i => !i.got);
+  if (!left.length) return toast('Last week was finished — nothing to carry');
+  let n = 0;
+  for (const i of left) {
+    const added = addToList(key(curWeek), (i.qty ? i.qty + ' ' : '') + i.name, i.from[0] || '');
+    if (added) n++;
+  }
+  save(); renderList();
+  toast(`Carried ${n} unbought item${n === 1 ? '' : 's'} forward`);
+});
+
+$('#copyList').addEventListener('click', () => {
+  const items = (weekPeek(key(curWeek)) || { items: [] }).items;
+  if (!items.length) return toast('Nothing to copy');
+  const lines = [`Grocery list · ${weekLabel(curWeek)}`, ''];
+  for (const a of AISLES) {
+    const mine = items.filter(i => i.aisle === a.id);
+    if (!mine.length) continue;
+    lines.push(`${a.en} ${a.zh}`);
+    for (const i of mine) {
+      lines.push(`  ${i.got ? '[x]' : '[ ]'} ${i.name}${i.qty ? ' — ' + i.qty : ''}${i.from.length ? ' (' + i.from.join(', ') + ')' : ''}`);
+    }
+    lines.push('');
+  }
+  copyText(lines.join('\n').trim(), 'List copied');
+});
+
+$('#clearGot').addEventListener('click', () => {
+  const rec = weekRec(key(curWeek));
+  const before = rec.items.length;
+  rec.items = rec.items.filter(i => !i.got);
+  save(); renderList();
+  toast(`Cleared ${before - rec.items.length}`);
+});
+$('#clearAll').addEventListener('click', () => {
+  if (!confirm('Clear this week’s whole list?')) return;
+  weekRec(key(curWeek)).items = [];
+  save(); renderList();
+});
+
+/* ─────────────────────────── MEALS VIEW ───────────────────── */
+function renderMeals() {
+  $('#mWeekLabel').textContent = weekLabel(curWeek);
+  $('#goToday').hidden = key(curDay) === key(today());
+
+  /* day chips */
+  const chips = $('#dayChips');
+  chips.innerHTML = '';
+  weekDays(curWeek).forEach((d, i) => {
+    const k = key(d);
+    const b = el('button', 'daychip' + (k === key(curDay) ? ' is-active' : '') + (k === key(today()) ? ' is-today' : ''));
+    b.append(el('b', null, DAY_NAMES[i]));
+    b.append(el('i', null, '周' + DAY_ZH[i]));
+    const dots = el('span', 'dots');
+    const s = dayServings(k);
+    for (const g of CORE_GROUPS) {
+      const dot = el('span', 'dot');
+      if (s[g]) dot.style.background = GROUP_BY_ID[g].color;
+      dots.append(dot);
+    }
+    b.append(dots);
+    b.addEventListener('click', () => { curDay = d; renderMeals(); });
+    chips.append(b);
+  });
+
+  const dayK = key(curDay);
+  $('#mealDayTitle').textContent = curDay.toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' });
+  const diff = Math.round((curDay - today()) / 86400000);
+  const rel = diff === 0 ? 'Today' : diff === -1 ? 'Yesterday' : diff === 1 ? 'Tomorrow'
+            : diff < 0 ? `${-diff} days ago` : `in ${diff} days`;
+  const s = dayServings(dayK);
+  const missing = GROUPS.filter(g => (s[g.id] || 0) < store.settings.targets[g.id]);
+  $('#mealDaySub').textContent = rel + (dayLogged(dayK)
+    ? (missing.length ? ' · short on ' + missing.map(g => g.en.toLowerCase()).join(', ') : ' · every group covered')
+    : ' · nothing written down yet');
+
+  const host = $('#mealList');
+  host.innerHTML = '';
+  for (const m of MEALS) host.append(mealCard(dayK, m));
+}
+
+function mealCard(dayK, m) {
+  const card = el('div', 'card meal');
+  const head = el('div', 'cardhead');
+  const h = el('h2', null, m.en + ' ');
+  h.append(el('span', 'zh', m.zh));
+  head.append(h);
+
+  const badges = el('div', 'badges');
+  const counts = mealServings(dayK, m.id);
+  for (const g of CORE_GROUPS) {
+    const b = el('span', 'badge' + (counts[g] ? ' on' : ''), GROUP_BY_ID[g].zh);
+    b.style.setProperty('--gc', GROUP_BY_ID[g].color);
+    b.title = GROUP_BY_ID[g].en;
+    badges.append(b);
+  }
+  head.append(badges);
+  card.append(head);
+
+  const entries = mealPeek(dayK, m.id);
+  const ul = el('ul', 'entries');
+  for (const e of entries) {
+    const li = el('li', 'entry');
+    const txt = el('input', 'etext');
+    txt.value = e.text;
+    txt.setAttribute('aria-label', m.en + ' entry');
+    txt.addEventListener('change', () => {
+      const v = txt.value.trim();
+      const rec = mealRec(dayK)[m.id];
+      const i = rec.findIndex(x => x.id === e.id);
+      if (i < 0) return;
+      if (!v) rec.splice(i, 1); else rec[i].text = v;
+      save(); renderMeals(); renderBalance();
+    });
+    li.append(txt);
+
+    const gs = groupsOf(e.text);
+    const dots = el('span', 'edots');
+    for (const g of gs) {
+      const d = el('span', 'gdot');
+      d.style.background = GROUP_BY_ID[g] ? GROUP_BY_ID[g].color : 'var(--line)';
+      d.title = GROUP_BY_ID[g] ? GROUP_BY_ID[g].en : g;
+      dots.append(d);
+    }
+    if (!gs.length) dots.append(el('span', 'unknown', '?'));
+    li.append(dots);
+
+    const shop = el('button', 'esmall', '＋');
+    shop.title = 'Add its ingredients to the list';
+    shop.addEventListener('click', () => {
+      const res = addTyped(key(curWeek), e.text);
+      save(); renderList();
+      toast(res && res.added.length ? `${res.added.length} on the list` : 'Nothing to add');
+    });
+    li.append(shop);
+
+    const del = el('button', 'esmall', '×');
+    del.title = 'Remove';
+    del.addEventListener('click', () => {
+      const rec = mealRec(dayK)[m.id];
+      const i = rec.findIndex(x => x.id === e.id);
+      if (i >= 0) rec.splice(i, 1);
+      save(); renderMeals(); renderBalance();
+    });
+    li.append(del);
+    ul.append(li);
+  }
+  card.append(ul);
+
+  const add = el('div', 'mealadd');
+  const inp = el('input');
+  inp.type = 'text';
+  inp.autocomplete = 'off';
+  inp.enterKeyHint = 'done';
+  inp.placeholder = m.id === 'breakfast' ? '燕麦粥 · yogurt · 2 eggs' : '番茄炒蛋 · 米饭 · salad';
+  const commit = () => {
+    const v = inp.value.trim();
+    if (!v) return;
+    for (const part of v.split(/[,，、;；\n]+/).map(x => x.trim()).filter(Boolean)) {
+      mealRec(dayK)[m.id].push({ id: uid(), text: part });
+    }
+    inp.value = '';
+    save(); renderMeals(); renderBalance();
+  };
+  inp.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); commit(); } });
+  const btn = el('button', 'add', '＋');
+  btn.addEventListener('click', commit);
+  add.append(inp, btn);
+  card.append(add);
+  return card;
+}
+
+$('#mWeekPrev').addEventListener('click', () => setWeek(addDays(curWeek, -7)));
+$('#mWeekNext').addEventListener('click', () => setWeek(addDays(curWeek, 7)));
+$('#goToday').addEventListener('click', () => { curDay = today(); setWeek(today()); });
+
+$('#dayToList').addEventListener('click', () => {
+  const dayK = key(curDay);
+  let n = 0;
+  for (const m of MEALS) for (const e of mealPeek(dayK, m.id)) {
+    const res = addTyped(key(curWeek), e.text);
+    if (res) n += res.added.length;
+  }
+  save(); renderList();
+  toast(n ? `${n} ingredients on this week’s list` : 'Nothing written on this day yet');
+});
+
+$('#copyDay').addEventListener('click', () => {
+  const dayK = key(curDay);
+  const lines = [curDay.toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' }), ''];
+  for (const m of MEALS) {
+    const entries = mealPeek(dayK, m.id);
+    if (!entries.length) continue;
+    lines.push(`${m.en} ${m.zh}: ${entries.map(e => e.text).join(', ')}`);
+  }
+  const s = dayServings(dayK);
+  lines.push('', GROUPS.map(g => `${g.en} ${s[g.id] || 0}/${store.settings.targets[g.id]}`).join(' · '));
+  copyText(lines.join('\n'), 'Day copied');
+});
+
+/* ────────────────────────── BALANCE VIEW ──────────────────── */
+const hexA = (hex, a) => {
+  const n = parseInt(hex.slice(1), 16);
+  return `rgba(${n >> 16 & 255}, ${n >> 8 & 255}, ${n & 255}, ${a.toFixed(2)})`;
+};
+
+function renderBalance() {
+  $('#bWeekLabel').textContent = weekLabel(curWeek);
+  $('#bThisWeek').hidden = isThisWeek();
+  const r = weekReport(curWeek);
+
+  /* score ring */
+  $('#scoreRing').style.setProperty('--p', r.pct);
+  $('#scorePct').textContent = r.pct + '%';
+  const worst = GROUPS.map(g => ({ g, gap: r.paceGoals[g.id] - r.totals[g.id] }))
+                      .sort((a, b) => b.gap - a.gap)[0];
+  if (!r.logged.length) {
+    $('#scoreHeadline').textContent = 'Nothing logged yet';
+    $('#scoreSub').textContent = 'Write what you ate under Meals 每餐 and this fills in.';
+  } else if (r.pct >= 90) {
+    $('#scoreHeadline').textContent = 'A balanced week 很均衡';
+    $('#scoreSub').textContent = `${r.logged.length} of ${r.elapsed || 7} days logged · every group close to target.`;
+  } else {
+    $('#scoreHeadline').textContent = `Short on ${worst.g.en.toLowerCase()} ${worst.g.zh}`;
+    $('#scoreSub').textContent = `${r.totals[worst.g.id]} of ${r.paceGoals[worst.g.id]} servings by now · ` +
+      `${r.logged.length} of ${r.elapsed || 7} days logged.`;
+  }
+
+  /* per-group bars, measured against the whole week */
+  const cats = $('#balanceGroups');
+  cats.innerHTML = '';
+  for (const g of GROUPS) {
+    const had = r.totals[g.id], goal = r.goals[g.id];
+    const c = el('div', 'cat');
+    const row = el('div', 'catrow');
+    const nm = el('div', 'catname');
+    const dot = el('span', 'dot'); dot.style.background = g.color;
+    nm.append(dot, el('span', null, g.en + ' '), el('span', 'zh', g.zh));
+    row.append(nm);
+    const num = el('div', 'catnum');
+    num.append(el('b', null, String(had)), document.createTextNode(` / ${goal} servings`));
+    row.append(num);
+    c.append(row);
+    const bar = el('div', 'bar');
+    const fill = el('i');
+    fill.style.width = Math.min(100, goal ? had / goal * 100 : 0) + '%';
+    fill.style.background = g.color;
+    bar.append(fill);
+    /* the pace marker: where you should be today */
+    const pace = el('u');
+    pace.style.left = Math.min(100, goal ? r.paceGoals[g.id] / goal * 100 : 0) + '%';
+    bar.append(pace);
+    c.append(bar);
+    const gap = r.paceGoals[g.id] - had;
+    const left = Math.max(1, 7 - r.paceDays);
+    const d = el('div', 'delta ' + (gap > 0 ? 'under' : 'over'),
+      gap > 0 ? `${gap} behind pace · ${((r.goals[g.id] - had) / left).toFixed(1)} a day to finish the week`
+              : `on pace${-gap ? ` · ${-gap} ahead` : ''}`);
+    c.append(d);
+    cats.append(c);
+  }
+
+  /* day × group heat */
+  const grid = $('#balanceGrid');
+  grid.innerHTML = '';
+  grid.append(el('span', 'hcorner', ''));
+  weekDays(curWeek).forEach((d, i) => {
+    const h = el('span', 'hcol' + (key(d) === key(today()) ? ' is-today' : ''), DAY_NAMES[i]);
+    grid.append(h);
+  });
+  for (const g of GROUPS) {
+    const lab = el('span', 'hrow');
+    lab.append(el('span', 'zh', g.short || g.zh));
+    lab.title = g.en;
+    grid.append(lab);
+    for (const d of weekDays(curWeek)) {
+      const k = key(d);
+      const n = r.byDay[k][g.id] || 0;
+      const target = store.settings.targets[g.id];
+      const cell = el('span', 'hcell', n ? String(n) : '');
+      const ratio = target ? Math.min(1, n / target) : 0;
+      if (n) cell.style.background = hexA(g.color, .18 + ratio * .62);
+      if (ratio >= .75) cell.style.color = '#fff';
+      if (fromKey(k) > today()) cell.classList.add('future');
+      cell.title = `${g.en} · ${DAY_NAMES[weekDays(curWeek).findIndex(x => key(x) === k)]} · ${n}/${target}`;
+      cell.addEventListener('click', () => { curDay = d; renderMeals(); showTab('meals'); });
+      grid.append(cell);
+    }
+  }
+
+  /* meal × day: is each meal carrying vegetables, protein and a grain? */
+  const mm = $('#mealMatrix');
+  mm.innerHTML = '';
+  mm.append(el('span', 'hcorner', ''));
+  weekDays(curWeek).forEach((d, i) => mm.append(el('span', 'hcol' + (key(d) === key(today()) ? ' is-today' : ''), DAY_NAMES[i])));
+  const slots = MEALS.filter(m => !m.optional);
+  const slotStats = {};
+  for (const m of slots) {
+    const lab = el('span', 'hrow');
+    lab.append(el('span', 'zh', m.zh));
+    mm.append(lab);
+    slotStats[m.id] = { veg: 0, protein: 0, grain: 0, eaten: 0 };
+    for (const d of weekDays(curWeek)) {
+      const k = key(d);
+      const c = mealServings(k, m.id);
+      const have = CORE_GROUPS.filter(g => c[g]);
+      const eaten = mealPeek(k, m.id).length > 0;
+      if (eaten) { slotStats[m.id].eaten++; for (const g of have) slotStats[m.id][g]++; }
+      const cell = el('span', 'hcell', eaten ? `${have.length}/3` : '');
+      if (eaten) {
+        cell.style.background = hexA(have.length === 3 ? '#3fb27f' : have.length === 2 ? '#d9a441' : '#e0705a',
+                                     .2 + have.length * .18);
+      }
+      if (fromKey(k) > today()) cell.classList.add('future');
+      cell.title = eaten ? `${m.en}: ${mealPeek(k, m.id).map(e => e.text).join(', ')}` : `${m.en} — not logged`;
+      cell.addEventListener('click', () => { curDay = d; renderMeals(); showTab('meals'); });
+      mm.append(cell);
+    }
+  }
+
+  const stats = $('#mealStats');
+  stats.innerHTML = '';
+  for (const m of slots) {
+    const s = slotStats[m.id];
+    const line = el('div', 'mstat');
+    line.append(el('b', null, `${m.en} ${m.zh}`));
+    line.append(el('span', 'muted', s.eaten
+      ? ` · vegetables ${s.veg}/${s.eaten} · protein ${s.protein}/${s.eaten} · grain ${s.grain}/${s.eaten}`
+      : ' · not logged this week'));
+    stats.append(line);
+  }
+
+  renderAdvice(r, slotStats);
+}
+
+function renderAdvice(r, slotStats) {
+  const host = $('#adviceList');
+  host.innerHTML = '';
+  const lines = advice(curWeek, r, slotStats);
+  for (const t of lines) {
+    const li = el('li');
+    li.innerHTML = t;
+    host.append(li);
+  }
+}
+
+/* Every line carries the number it came from — an instruction you can act on
+   tonight, not a grade. */
+function advice(wk, r, slotStats) {
+  const out = [];
+  const items = (weekPeek(key(wk)) || { items: [] }).items;
+  const daysLeft = Math.max(0, 7 - r.paceDays);
+  const escHtml = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;');
+
+  if (!r.logged.length) {
+    return ['Nothing is logged for this week yet. Open <b>Meals 每餐</b>, write what you ate — ' +
+            'a dish name in either language is enough — and every number here fills itself in.'];
+  }
+
+  /* 1. the biggest hole, and what it costs a day to close */
+  const gaps = GROUPS.map(g => ({ g, gap: r.paceGoals[g.id] - r.totals[g.id], had: r.totals[g.id] }))
+                     .filter(x => x.gap > 0).sort((a, b) => b.gap - a.gap);
+  if (gaps.length) {
+    const w = gaps[0];
+    const weekGap = r.goals[w.g.id] - w.had;
+    const perDay = daysLeft ? (weekGap / daysLeft) : 0;
+    if (daysLeft && perDay > store.settings.targets[w.g.id] * 2) {
+      out.push(`<b>${w.g.en} ${w.g.zh}</b> is ${weekGap} servings short of the week with ${daysLeft} day${daysLeft === 1 ? '' : 's'} left — ` +
+               `${perDay.toFixed(1)} a day is more than you eat. Take the week as it is and start Monday with ${w.g.en.toLowerCase()} at breakfast.`);
+    } else if (daysLeft) {
+      out.push(`<b>${w.g.en} ${w.g.zh}</b>: ${w.had} of ${r.paceGoals[w.g.id]} by now. ` +
+               `${perDay.toFixed(1)} servings a day over the ${daysLeft} day${daysLeft === 1 ? '' : 's'} left closes the week.`);
+    } else {
+      out.push(`<b>${w.g.en} ${w.g.zh}</b> finished ${weekGap} short of ${r.goals[w.g.id]}. It is the gap to carry into next week.`);
+    }
+    /* what is already in the basket that would have fixed it */
+    const cure = items.filter(i => i.groups.includes(w.g.id)).slice(0, 3);
+    if (cure.length) {
+      out.push(`You already have <b>${cure.map(i => escHtml(i.name)).join('</b>, <b>')}</b> on this week&rsquo;s list — ` +
+               `that is ${w.g.en.toLowerCase()} sitting in the fridge rather than on the plate.`);
+    }
+  }
+
+  /* 2. anything that never appeared at all */
+  const zero = GROUPS.filter(g => !r.totals[g.id]);
+  if (zero.length) {
+    out.push(`No ${zero.map(g => `<b>${g.en.toLowerCase()} ${g.zh}</b>`).join(', ')} at all this week. ` +
+             `One serving a day of each is the whole ask.`);
+  }
+
+  /* 3. which meal is the weak one */
+  const slots = MEALS.filter(m => !m.optional);
+  const weakest = slots.map(m => {
+    const s = slotStats[m.id];
+    return { m, s, miss: s.eaten ? (s.eaten - s.veg) : 0 };
+  }).sort((a, b) => b.miss - a.miss)[0];
+  if (weakest && weakest.miss >= 2) {
+    out.push(`<b>${weakest.m.en} ${weakest.m.zh}</b> went without vegetables on ${weakest.miss} of ` +
+             `${weakest.s.eaten} logged days. It is the cheapest fix on this page — ` +
+             `${weakest.m.id === 'breakfast' ? 'spinach in the eggs, tomato on the toast' : 'one green dish alongside whatever else you make'}.`);
+  }
+  const noProtein = slots.filter(m => slotStats[m.id].eaten && slotStats[m.id].protein < slotStats[m.id].eaten / 2);
+  if (noProtein.length) {
+    out.push(`Protein 蛋白质 is missing from most of your ${noProtein.map(m => m.en.toLowerCase()).join(' and ')} — ` +
+             `an egg, 豆腐, yogurt or a handful of nuts is a serving.`);
+  }
+
+  /* 4. the shape of the week */
+  const loggedDays = r.days.filter(dayLogged);
+  const ranked = loggedDays.map(k => ({
+    k, n: GROUPS.reduce((s, g) => s + Math.min(r.byDay[k][g.id] || 0, store.settings.targets[g.id]), 0),
+  })).sort((a, b) => b.n - a.n);
+  if (ranked.length >= 2) {
+    const best = ranked[0], worst = ranked[ranked.length - 1];
+    const dn = k => weekDays(wk).findIndex(d => key(d) === k);
+    out.push(`Your fullest day was <b>${DAY_NAMES[dn(best.k)]}</b> (${best.n} servings), your thinnest ` +
+             `<b>${DAY_NAMES[dn(worst.k)]}</b> (${worst.n}). Cook double on the good days and the thin ones stop happening.`);
+  }
+  const unlogged = r.days.filter(k => fromKey(k) <= today() && !dayLogged(k));
+  if (unlogged.length) {
+    const dn = k => DAY_NAMES[weekDays(wk).findIndex(d => key(d) === k)];
+    out.push(`${unlogged.length} day${unlogged.length === 1 ? '' : 's'} unlogged (${unlogged.map(dn).join(', ')}). ` +
+             `The score treats them as empty, so fill them in while you still remember.`);
+  }
+
+  /* 5. and the credit where it is due */
+  const strong = GROUPS.filter(g => r.totals[g.id] >= r.paceGoals[g.id] && r.paceGoals[g.id] > 0);
+  if (strong.length) {
+    out.push(`On or ahead of pace: ${strong.map(g => `<b>${g.en} ${g.zh}</b> (${r.totals[g.id]}/${r.paceGoals[g.id]})`).join(', ')}.`);
+  }
+  return out;
+}
+
+$('#bWeekPrev').addEventListener('click', () => setWeek(addDays(curWeek, -7)));
+$('#bWeekNext').addEventListener('click', () => setWeek(addDays(curWeek, 7)));
+$('#bThisWeek').addEventListener('click', () => { curDay = today(); setWeek(today()); });
+
+$('#copyReport').addEventListener('click', () => {
+  const r = weekReport(curWeek);
+  const lines = [`Weekly balance · ${weekLabel(curWeek)}`, `Score ${r.pct}% · ${r.logged.length} of ${r.elapsed || 7} days logged`, ''];
+  for (const g of GROUPS) lines.push(`${g.en} ${g.zh}: ${r.totals[g.id]} / ${r.goals[g.id]} servings`);
+  lines.push('');
+  for (const d of weekDays(curWeek)) {
+    const k = key(d);
+    if (!dayLogged(k)) continue;
+    const eaten = MEALS.map(m => {
+      const e = mealPeek(k, m.id);
+      return e.length ? `${m.en}: ${e.map(x => x.text).join(', ')}` : null;
+    }).filter(Boolean);
+    lines.push(`${DAY_NAMES[weekDays(curWeek).findIndex(x => key(x) === k)]} — ${eaten.join(' | ')}`);
+  }
+  lines.push('');
+  const slotStats = {};
+  for (const m of MEALS.filter(x => !x.optional)) {
+    slotStats[m.id] = { veg: 0, protein: 0, grain: 0, eaten: 0 };
+    for (const d of weekDays(curWeek)) {
+      const c = mealServings(key(d), m.id);
+      if (mealPeek(key(d), m.id).length) {
+        slotStats[m.id].eaten++;
+        for (const g of CORE_GROUPS) if (c[g]) slotStats[m.id][g]++;
+      }
+    }
+  }
+  for (const t of advice(curWeek, r, slotStats)) lines.push('- ' + t.replace(/<[^>]+>/g, '').replace(/&rsquo;/g, '’').replace(/&amp;/g, '&').replace(/&lt;/g, '<'));
+  copyText(lines.join('\n'), 'Report copied');
+});
+
+/* ─────────────────────────── SETUP VIEW ───────────────────── */
+function renderSetup() {
+  /* targets */
+  const host = $('#targetInputs');
+  host.innerHTML = '';
+  for (const g of GROUPS) {
+    const wrap = el('div', 'goal');
+    const lab = el('label');
+    const dot = el('span', 'dot'); dot.style.background = g.color;
+    lab.append(dot, el('span', null, `${g.en} ${g.zh}`));
+    const inp = el('input');
+    inp.type = 'number'; inp.min = '0'; inp.max = '12'; inp.step = '1';
+    inp.value = store.settings.targets[g.id];
+    inp.addEventListener('change', () => {
+      store.settings.targets[g.id] = Math.max(0, Math.min(12, Math.round(+inp.value || 0)));
+      save(); renderBalance(); renderMeals(); renderSetup();
+    });
+    wrap.append(lab, inp);
+    host.append(wrap);
+  }
+
+  /* things it could not place */
+  const teach = $('#teachList');
+  teach.innerHTML = '';
+  const names = new Map();
+  for (const wk of Object.keys(store.weeks)) {
+    for (const it of store.weeks[wk].items) {
+      if (it.aisle === 'other' && !names.has(normalize(it.name))) names.set(normalize(it.name), it.name);
+    }
+  }
+  if (!names.size) {
+    teach.append(el('p', 'sub', 'Nothing unfiled — every item on your lists found a section.'));
+  } else {
+    for (const [norm, display] of names) {
+      const row = el('div', 'teach');
+      row.append(el('b', null, display));
+      const sel = el('select');
+      for (const a of AISLES) {
+        const o = el('option', null, `${a.en} ${a.zh}`);
+        o.value = a.id;
+        if (a.id === (store.learned[norm] || {}).aisle) o.selected = true;
+        sel.append(o);
+      }
+      const chips = el('div', 'gchips');
+      const learnedGroups = ((store.learned[norm] || {}).groups || []).slice();
+      const commit = () => {
+        store.learned[norm] = { aisle: sel.value, groups: learnedGroups.slice() };
+        for (const wk of Object.keys(store.weeks)) {
+          for (const it of store.weeks[wk].items) {
+            if (normalize(it.name) === norm) { it.aisle = sel.value; it.groups = learnedGroups.slice(); }
+          }
+        }
+        save(); renderList(); renderBalance();
+      };
+      sel.addEventListener('change', commit);
+      for (const g of GROUPS) {
+        const b = el('button', 'gchip' + (learnedGroups.includes(g.id) ? ' on' : ''), `${g.en} ${g.zh}`);
+        b.style.setProperty('--gc', g.color);
+        b.addEventListener('click', () => {
+          const i = learnedGroups.indexOf(g.id);
+          if (i < 0) learnedGroups.push(g.id); else learnedGroups.splice(i, 1);
+          b.classList.toggle('on');
+          commit();
+        });
+        chips.append(b);
+      }
+      row.append(sel, chips);
+      teach.append(row);
+    }
+  }
+
+  /* what it knows */
+  $('#lexStats').textContent =
+    `${FOOD_LIST.length} foods and ${RECIPE_LIST.length} dishes, each answering to both its English and Chinese name ` +
+    `(${ALIASES.length} names in all). Anything it does not know still goes on the list — it just lands under Other.`;
+  const dishes = $('#dishList');
+  if (!dishes.childNodes.length) {
+    for (const r of RECIPE_LIST) {
+      const b = el('button', 'sug');
+      b.append(el('b', null, r.names[0]));
+      const alt = r.names.find(n => hasCJK(n) !== hasCJK(r.names[0]));
+      b.append(el('i', null, alt || `${r.ingredients.length} ingredients`));
+      b.addEventListener('click', () => {
+        const res = addTyped(key(curWeek), r.names[0]);
+        save(); renderList();
+        toast(`${r.names[0]} → ${res.added.length} ingredients on the list`);
+      });
+      dishes.append(b);
+    }
+  }
+}
+
+$('#resetTargets').addEventListener('click', () => {
+  store.settings.targets = defaultTargets();
+  save(); renderSetup(); renderBalance();
+  toast('Targets reset');
+});
+
+$('#exportData').addEventListener('click', () => {
+  const blob = new Blob([JSON.stringify(store, null, 2)], { type: 'application/json' });
+  const a = el('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `basket-${key(today())}.json`;
+  document.body.append(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+});
+
+$('#importData').addEventListener('change', e => {
+  const file = e.target.files && e.target.files[0];
+  if (!file) return;
+  const fr = new FileReader();
+  fr.onload = () => {
+    try {
+      const data = JSON.parse(fr.result);
+      if (!data || !data.weeks) throw new Error('not a Basket export');
+      localStorage.setItem(STORE_KEY, JSON.stringify(data));
+      load();
+      renderAll();
+      toast('Imported');
+    } catch (err) { alert('That file could not be read: ' + err.message); }
+    e.target.value = '';
+  };
+  fr.readAsText(file);
+});
+
+$('#wipeData').addEventListener('click', () => {
+  if (!confirm('Erase every list, meal and setting on this device?')) return;
+  localStorage.removeItem(STORE_KEY);
+  load(); renderAll();
+  toast('Erased');
+});
+
+/* ── go ────────────────────────────────────────────────────── */
+load();
+renderAll();
+
+</script>
+</body>
+</html>
