@@ -18,10 +18,16 @@ and add to a phone's home screen. Regenerate it with `node build.js`.
 One living list, not a new one every week.
 
 - The **add bar sits at the bottom**, above the tabs, where your thumb is.
-- **Tap a row** to tick it off. **Swipe it left** to delete it — with an Undo
-  in the toast, because a grocery list isn't worth a confirm dialog. Tap **⋯**
-  to edit it: name, how much, which shop, which section, what it counts as, a
-  note, or remove.
+- **Tap a row** to tick it off. **Swipe left** to delete — a short swipe parks
+  the row open with a Delete button, a long one just does it, and either way
+  there's an Undo. **Swipe right** to say you already have it. Tap **⋯** to
+  edit: name, how much, which shop, which section, what it counts as, a note.
+- **Already have 家里有** is the shelf at the bottom of the list. Seasonings a
+  dish asks for land there by themselves, anything you swipe right joins them,
+  and none of it clutters the list or gets asked for again. Tap something on
+  the shelf when you run out and it's back on the list.
+- **Shopping done ✓** asks what it came to. The amount is optional — skipping
+  is one tap — and what you do log adds up under the list and in Setup.
 - **Shopping done ✓** records the run, clears every tick, and leaves the list
   standing for next time. There's an **Undo** in the toast if you hit it early.
 - Sections colour-code themselves and sort into the order you walk a shop.
@@ -49,7 +55,8 @@ already unticked because you own them, quantities and the other language's
 name on every line. Only what you tick goes on the list, and what you said you
 already had is remembered for that dish next time.
 
-Typing a dish name into the add bar opens the same checklist. The same buttons
+Typing a dish name into the add bar opens the same checklist — in any of the
+three languages, so `œufs marinés` and `卤蛋` both work. The same buttons
 sit under every meal so logging what you ate is one tap too, and **＋** on a
 logged meal opens the checklist for it. Star any other dish under **Setup** and
 it joins them.
@@ -67,7 +74,12 @@ One box takes everything, and what you typed decides what happens.
 | `青椒土豆丝` | not a known dish, but it names two foods and is clearly cooked, so both go on |
 | `苹果, 酸奶、oat milk` | commas, Chinese or English, split it into three items |
 
-322 foods and 80 dishes, each answering to both its English and Chinese name.
+325 foods and 80 dishes. Every food answers to its **English, Chinese and
+French** name, so `pomme`, `苹果` and `apple` all put the same thing in the
+basket, and every item on the list shows the two names you didn't type —
+which is a grocery list that teaches you French while you use it. Accents and
+ligatures are optional: `mais` finds `le maïs`, `oeuf` finds `l'œuf`.
+
 Anything unknown still goes on the list — it lands under **Other**, where you
 file it once under **Setup → Teach it** and it remembers.
 
@@ -115,7 +127,7 @@ JSON** restores it.
 |---|---|
 | `index.html` | markup for the three tabs plus Setup |
 | `styles.css` | tokens + layout, light and dark, phone first |
-| `data.js` | foods, aisles and their colours, shops, food groups, recipes |
+| `data.js` | foods, aisles and their colours, shops, food groups, recipes, the French names |
 | `app.js` | parsing, the list, shopping runs, the meal log, the weekly report |
 | `build.js` | inlines the above into `basket-standalone.html` |
 | `basket-standalone.html` | generated — the whole app in one file |

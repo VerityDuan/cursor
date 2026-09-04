@@ -32,12 +32,13 @@
   </div>
 
   <div id="sections"></div>
-  <p class="listtip" id="listTip" hidden>Swipe an item left to delete it · tap ⋯ to edit it</p>
-  <div class="staples" id="staples"></div>
+  <p class="listtip" id="listTip" hidden>Swipe left to delete · swipe right if you already have it · tap ⋯ to edit</p>
+  <div class="shelf" id="shelf"></div>
 
   <button class="bigdone" id="doneBtn" type="button" hidden>Shopping done ✓</button>
   <p class="donehint">Ticks clear, the sections and everything in them stay.</p>
   <div class="runs" id="runs"></div>
+  <p class="spend" id="spend"></p>
 
   <div class="listfoot">
     <button class="ghost danger" id="emptyList" type="button">Delete these items</button>
@@ -198,6 +199,27 @@
       <button class="ghost" id="sheetAll" type="button">All</button>
       <button class="ghost" id="sheetNone" type="button">None</button>
       <button class="add" id="sheetAdd" type="button">Add</button>
+    </div>
+  </div>
+</div>
+
+<div class="sheet" id="cost" hidden>
+  <div class="sheetback" id="costBack"></div>
+  <div class="sheetpanel">
+    <div class="sheethead">
+      <div>
+        <b>Shopping done ✓</b>
+        <i id="costSub">—</i>
+      </div>
+    </div>
+    <label class="costrow" for="costInput">
+      <span class="cursym">$</span>
+      <input id="costInput" type="number" inputmode="decimal" step="0.01" min="0" placeholder="0.00">
+    </label>
+    <p class="costhint">What did it come to? Skipping is fine — the shop is recorded either way.</p>
+    <div class="sheetfoot">
+      <button class="ghost" id="costSkip" type="button">Skip</button>
+      <button class="add" id="costSave" type="button">Save</button>
     </div>
   </div>
 </div>

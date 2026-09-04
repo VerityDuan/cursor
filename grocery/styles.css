@@ -205,10 +205,14 @@ input:focus, select:focus { outline: 2px solid var(--ink); outline-offset: -2px;
 .items { list-style: none; margin: 0; padding: 0; }
 .item .row { position: relative; overflow: hidden; border-radius: 12px; }
 .behind {
-  position: absolute; inset: 0; display: flex; align-items: center; justify-content: flex-end;
-  padding-right: 16px; background: var(--bad); border-radius: 12px;
-  color: #fff; font-size: 13px; font-weight: 800;
+  position: absolute; inset: 0; display: flex; align-items: center;
+  border: 0; border-radius: 12px; color: #fff; font-size: 13px; font-weight: 800;
+  opacity: 0;
 }
+.behind.del  { justify-content: flex-end; padding-right: 16px; background: var(--bad); }
+.behind.have { justify-content: flex-start; padding-left: 16px; background: var(--good); }
+.item.dir-del .behind.del, .item.open .behind.del { opacity: 1; }
+.item.dir-have .behind.have { opacity: 1; }
 .face {
   position: relative;
   display: grid; grid-template-columns: 28px 1fr auto 30px;
@@ -268,12 +272,29 @@ input:focus, select:focus { outline: 2px solid var(--ink); outline-offset: -2px;
 .empty .big { font-size: 18px; font-weight: 800; color: var(--ink); margin: 0 0 6px; }
 .empty p { margin: 0; font-size: 14px; }
 
-.staples {
-  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
-  padding: 4px 4px 0; font-size: 12.5px; color: var(--ink-soft); font-weight: 600;
+/* ── already have ───────────────────────────────────────── */
+.shelf { margin-top: 16px; }
+.shelf:empty { display: none; }
+.shelfhead {
+  display: flex; align-items: center; gap: 7px; width: 100%;
+  border: 2px dashed var(--line); background: transparent;
+  border-radius: 14px; padding: 11px 13px;
 }
-.staples:empty { display: none; }
-.staples span { flex: 1; min-width: 170px; }
+.shelfhead b { font-size: 13.5px; font-weight: 800; }
+.shelfhead i { font-style: normal; font-size: 12px; color: var(--ink-soft); font-weight: 700; }
+.shelfhead .n {
+  margin-left: auto; font-size: 12px; font-weight: 800; color: var(--ink-soft);
+  background: var(--line); border-radius: 999px; padding: 2px 9px;
+}
+.shelfhead .caret { color: var(--ink-soft); font-size: 10px; }
+.shelfhint { font-size: 12px; color: var(--ink-soft); margin: 10px 4px 8px; font-weight: 600; }
+.shelfitems { display: flex; flex-wrap: wrap; gap: 6px; }
+.shelfitem {
+  border: 2px solid color-mix(in srgb, var(--c) 38%, transparent);
+  background: color-mix(in srgb, var(--c) 10%, transparent);
+  border-radius: 999px; padding: 6px 12px;
+}
+.shelfitem b { font-size: 13px; font-weight: 700; }
 
 /* ── the big button ─────────────────────────────────────── */
 .bigdone {
@@ -407,14 +428,17 @@ input:focus, select:focus { outline: 2px solid var(--ink); outline-offset: -2px;
 
 /* ── toast ──────────────────────────────────────────────── */
 .toast {
-  position: fixed; left: 50%; bottom: calc(14px + var(--tabh)); transform: translate(-50%, 14px);
+  /* left:50% alone would cap the box at half the viewport and wrap every
+     message — centre it with auto margins instead */
+  position: fixed; left: 0; right: 0; margin: 0 auto; width: fit-content;
+  bottom: calc(14px + var(--tabh)); transform: translateY(14px);
   display: flex; align-items: center; gap: 12px;
   background: var(--ink); color: var(--bg);
   padding: 12px 16px; border-radius: 20px; font-size: 14px; font-weight: 700; text-align: left;
   opacity: 0; pointer-events: none; transition: opacity .18s, transform .18s;
   z-index: 40; max-width: 92vw;
 }
-.toast.show { opacity: 1; transform: translate(-50%, 0); pointer-events: auto; }
+.toast.show { opacity: 1; transform: translateY(0); pointer-events: auto; }
 .toast .undo {
   border: 0; background: var(--bg); color: var(--ink);
   border-radius: 999px; padding: 5px 13px; font-weight: 800; font-size: 13px;
@@ -468,3 +492,27 @@ input:focus, select:focus { outline: 2px solid var(--ink); outline-offset: -2px;
 .sheetfoot { display: flex; gap: 8px; align-items: center; padding-top: 12px; border-top: 2px solid var(--line); }
 .sheetfoot .add { flex: 1; padding: 14px; border-radius: 16px; }
 .sheetfoot .add:disabled { background: var(--line); color: var(--ink-soft); }
+
+/* ── what it came to ────────────────────────────────────── */
+.costrow {
+  display: flex; align-items: center; gap: 10px; margin: 4px 2px 0;
+  background: var(--bg); border: 2px solid var(--line); border-radius: 16px; padding: 8px 14px;
+}
+.cursym { font-size: 22px; font-weight: 800; color: var(--ink-soft); }
+.costrow input {
+  flex: 1; min-width: 0; border: 0; background: transparent;
+  font-size: 26px; font-weight: 800; padding: 6px 0; letter-spacing: -.02em;
+}
+.costrow input:focus { outline: 0; }
+.costrow input::-webkit-outer-spin-button, .costrow input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.costhint { font-size: 12px; color: var(--ink-soft); margin: 10px 4px 2px; font-weight: 600; }
+.spend { text-align: center; font-size: 12.5px; color: var(--ink-soft); font-weight: 700; margin: 10px 0 0; }
+.spend:empty { display: none; }
+.spend b { color: var(--ink); font-size: 14.5px; }
+.spend i { font-style: normal; opacity: .8; }
+.spendsum { margin: 0 0 12px; font-size: 13.5px; color: var(--ink-soft); font-weight: 600; }
+.spendsum b { color: var(--ink); font-size: 19px; font-weight: 800; }
+.costbtn {
+  margin-left: auto; border: 2px solid var(--line); background: transparent;
+  color: var(--ink-soft); border-radius: 999px; padding: 3px 11px; font-size: 12px; font-weight: 800;
+}

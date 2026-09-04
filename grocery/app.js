@@ -65,9 +65,37 @@ const MEAL_BY_ID  = Object.fromEntries(MEALS.map(m => [m.id, m]));
 /* ── reading what you typed ────────────────────────────────── */
 const normalize = s => (s || '')
   .toLowerCase()
+  .normalize('NFD').replace(/[\u0300-\u036f]/g, '')   /* mais finds maïs */
+  .replace(/œ/g, 'oe').replace(/æ/g, 'ae')             /* oeuf finds œuf */
   .replace(/[，,。、；;!！?？"'“”‘’()（）\[\]【】]/g, ' ')
   .replace(/\s+/g, ' ')
   .trim();
+
+/* ── le français ────────────────────────────────────────────
+   Each food answers to its French name too, with or without the article, so
+   the list can be written in French while you are learning it. A French name
+   that another food already answers to is left out rather than stealing it
+   ("raisin" stays the dried grape it is in English). */
+const FR_ARTICLE = /^(les |le |la |l['’]|du |de la |des )/i;
+{
+  const claimed = new Set(ALIASES.map(a => a.a));
+  for (const f of FOOD_LIST) {
+    const fr = FR[f.id];
+    if (!fr) continue;
+    f.fr = fr;
+    for (const form of [fr, fr.replace(FR_ARTICLE, '')]) {
+      const a = normalize(form);
+      if (!a || claimed.has(a)) continue;
+      claimed.add(a);
+      ALIASES.push({ a, food: f, cjk: false, re: new RegExp('\\b' + esc(a) + '\\b', 'gi') });
+    }
+  }
+  ALIASES.sort((x, y) => y.a.length - x.a.length);
+  /* dish names were lower-cased before normalize existed — redo them so an
+     accent or a ligature typed either way still finds the dish */
+  for (const e of RECIPE_ALIASES) e.a = normalize(e.a);
+  RECIPE_ALIASES.sort((x, y) => y.a.length - x.a.length);
+}
 
 const UNIT_LIST = [
   '个','颗','把','根','条','片','块','盒','包','袋','瓶','罐','斤','两','克','千克','公斤',
@@ -152,13 +180,18 @@ function improviseDish(text) {
   return null;
 }
 
-/* what the other language calls it, for the subtitle under an item */
-function otherName(food, typed) {
-  if (!food) return '';
-  const wantZh = !hasCJK(typed);
-  const list = wantZh ? food.zh : food.en;
-  const alt = list && list.length ? list[0] : '';
-  return normalize(alt) === normalize(typed) ? '' : alt;
+/* the two names you did not type, for the line under an item */
+function otherNames(food, typed) {
+  if (!food) return [];
+  const t = normalize(typed);
+  const out = [];
+  for (const n of [food.zh[0], food.en[0], food.fr]) {
+    if (!n) continue;
+    const nn = normalize(n);
+    if (!nn || nn === t || nn.includes(t) || t.includes(nn)) continue;
+    out.push(n);
+  }
+  return out.slice(0, 2);
 }
 
 /* ── classification, with anything you taught it winning ────── */
@@ -216,7 +249,7 @@ const blank = () => ({
   version: 2,
   settings: {
     targets: defaultTargets(),
-    hideStaples: true,
+    shelfOpen: false,
     favourites: DEFAULT_FAVOURITES.slice(),
     store: 'all',
     dishSkip: {},
@@ -250,7 +283,11 @@ function normalise(raw) {
     }
     delete s.weeks;
   }
-  for (const it of s.list.items) if (!it.store) it.store = storeOf(it.foodId);
+  for (const it of s.list.items) {
+    if (!it.store) it.store = storeOf(it.foodId);
+    if (it.have === undefined) it.have = !!it.staple;   /* the old folded staples */
+    delete it.staple;
+  }
   return s;
 }
 function load() {
@@ -325,6 +362,14 @@ const dayLogged = dayK => MEALS.some(m => mealPeek(dayK, m.id).length);
 /* ── finishing a shop ──────────────────────────────────────
    Nothing is thrown away: the run is recorded, every tick is cleared, and
    the same sections and items are waiting for next time. */
+const monthOf = ts => { const d = new Date(ts); return d.getFullYear() * 12 + d.getMonth(); };
+const money = n => '$' + (Math.round(n * 100) / 100).toFixed(2);
+function spent(monthsAgo) {
+  const m = monthOf(Date.now()) - (monthsAgo || 0);
+  const rs = store.runs.filter(r => r.cost > 0 && monthOf(r.at) === m);
+  return { total: rs.reduce((t, r) => t + r.cost, 0), shops: rs.length };
+}
+
 function finishRun(storeId, scope) {
   const got = scope.filter(i => i.got);
   /* A run at "All" is not a trip to every shop — it counts only for the
@@ -334,7 +379,7 @@ function finishRun(storeId, scope) {
     : [storeId];
   store.runs.unshift({
     id: uid(), at: Date.now(), store: storeId, stores: visited,
-    got: got.map(i => i.name), total: scope.length,
+    got: got.map(i => i.name), total: scope.length, cost: 0,
   });
   store.runs = store.runs.slice(0, 60);
   for (const i of scope) i.got = false;
@@ -384,8 +429,8 @@ function addToList(raw, fromDish, forStore) {
     store: forStore && forStore !== 'all' ? forStore : storeOf(cls.food ? cls.food.id : ''),
     from: fromDish ? [fromDish] : [], note: '',
     /* salt and soy sauce arrive with every dish and are already in your
-       kitchen — they are folded away until you say otherwise */
-    staple: !!fromDish && (cls.aisle === 'pantry' || cls.aisle === 'spice') && !cls.groups.length,
+       kitchen — they go straight to the Already have shelf */
+    have: !!fromDish && (cls.aisle === 'pantry' || cls.aisle === 'spice') && !cls.groups.length,
   };
   rec.items.push(item);
   return item;
@@ -554,19 +599,19 @@ const inScope = i => {
 };
 
 function renderList() {
+  openRow = null;
   const all = listItems();
   const f = store.settings.store;
-  const hiding = store.settings.hideStaples !== false;
   const scoped = all.filter(inScope);
-  const folded = hiding ? scoped.filter(i => i.staple) : [];
-  const shown  = hiding ? scoped.filter(i => !i.staple) : scoped;
+  const shelved = scoped.filter(i => i.have);
+  const shown   = scoped.filter(i => !i.have);
   const got = shown.filter(i => i.got).length;
 
   /* which shop am I in */
   const chips = $('#storeChips');
   chips.innerHTML = '';
   const opts = [{ id: 'all', name: 'All', zh: '全部', c: '#1A1712' }].concat(STORES.filter(s => s.id !== 'any'));
-  const countable = hiding ? all.filter(i => !i.staple) : all;
+  const countable = all.filter(i => !i.have);
   for (const s of opts) {
     const n = countable.filter(i => s.id === 'all' ? true : (i.store === s.id || i.store === 'any')).length;
     const b = btn('schip' + (f === s.id ? ' on' : ''));
@@ -630,21 +675,34 @@ function renderList() {
 
   $('#listTip').hidden = !shown.length;
 
-  /* seasonings you already own */
-  const fold = $('#staples');
-  fold.innerHTML = '';
-  if (folded.length) {
-    fold.append(el('span', null,
-      `${folded.length} seasoning${folded.length === 1 ? '' : 's'} folded away — ` +
-      folded.slice(0, 4).map(i => i.name).join('、') + (folded.length > 4 ? '…' : '')));
-    const b = btn('ghost', 'Show');
-    b.addEventListener('click', () => { store.settings.hideStaples = false; save(); renderList(); });
-    fold.append(b);
-  } else if (!hiding && scoped.some(i => i.staple)) {
-    fold.append(el('span', null, 'Seasonings are showing.'));
-    const b = btn('ghost', 'Fold away');
-    b.addEventListener('click', () => { store.settings.hideStaples = true; save(); renderList(); });
-    fold.append(b);
+  /* the shelf: things you have, out of the way until you run out */
+  const shelf = $('#shelf');
+  shelf.innerHTML = '';
+  if (shelved.length) {
+    const open = !!store.settings.shelfOpen;
+    const head = btn('shelfhead' + (open ? ' open' : ''));
+    head.append(el('b', null, 'Already have'));
+    head.append(el('i', null, '家里有'));
+    head.append(el('span', 'n', String(shelved.length)));
+    head.append(el('span', 'caret', open ? '▾' : '▸'));
+    head.addEventListener('click', () => { store.settings.shelfOpen = !open; save(); renderList(); });
+    shelf.append(head);
+    if (open) {
+      shelf.append(el('p', 'shelfhint', 'Tap anything you have run out of to put it back on the list.'));
+      const wrap = el('div', 'shelfitems');
+      for (const it of shelved) {
+        const c = btn('shelfitem');
+        c.style.setProperty('--c', AISLE_BY_ID[it.aisle].c);
+        c.append(el('b', null, it.name));
+        c.addEventListener('click', () => {
+          it.have = false; it.got = false;
+          save(); renderList();
+          toast(`${it.name} is back on the list`);
+        });
+        wrap.append(c);
+      }
+      shelf.append(wrap);
+    }
   }
 
   /* the big button */
@@ -663,17 +721,33 @@ function renderList() {
     chip.append(el('i', null, agoText(lastRunAt(s.id))));
     runs.append(chip);
   }
+
+  const m = spent(0), prev = spent(1);
+  const line = $('#spend');
+  line.innerHTML = '';
+  if (m.shops || prev.shops) {
+    line.append(el('b', null, money(m.total)));
+    line.append(el('span', null, ` this month · ${m.shops} shop${m.shops === 1 ? '' : 's'}`));
+    if (prev.shops) line.append(el('i', null, ` last month ${money(prev.total)}`));
+  }
 }
 
 function itemRow(it) {
   const li = el('li', 'item' + (it.got ? ' is-got' : ''));
   const row = el('div', 'row');
-  const behind = el('div', 'behind');
+  const keep = el('div', 'behind have');
+  keep.append(el('span', null, 'Have it 家里有'));
+  const behind = btn('behind del');
   behind.append(el('span', null, 'Delete 删除'));
+  behind.addEventListener('click', () => removeItem(it.id, true));
   const face = el('div', 'face');
-  row.append(behind, face);
+  row.append(keep, behind, face);
 
-  const toggle = () => { it.got = !it.got; save(); renderList(); };
+  const toggle = () => {
+    /* a row parked open is closed by the next tap, not ticked */
+    if (li.classList.contains('open')) { closeOpenRow(); return; }
+    it.got = !it.got; save(); renderList();
+  };
 
   const tick = btn('tick' + (it.got ? ' on' : ''));
   tick.setAttribute('aria-pressed', it.got ? 'true' : 'false');
@@ -684,9 +758,7 @@ function itemRow(it) {
   const body = btn('ibody');
   const nm = el('span', 'nm', it.name);
   body.append(nm);
-  const bits = [];
-  const alt = otherName(FOOD_BY_ID[it.foodId], it.name);
-  if (alt) bits.push(alt);
+  const bits = otherNames(FOOD_BY_ID[it.foodId], it.name);
   if (it.from.length) bits.push('for ' + it.from.join(', '));
   if (it.note) bits.push(it.note);
   if (bits.length) body.append(el('span', 'sub', bits.join(' · ')));
@@ -708,16 +780,36 @@ function itemRow(it) {
   return li;
 }
 
-/* Drag a row to the left past the halfway mark and it goes — with an Undo,
-   because a grocery list is not worth a confirm dialog. Vertical drags are
+/* Drag a row left and it parks open with a Delete button under your thumb;
+   keep going and it just goes, with an Undo in the toast. Vertical drags are
    handed straight back to the page so the list still scrolls. */
+const SWIPE_PARK = 106;   /* how far the row rests open */
+const SWIPE_SNAP = 40;    /* past this, it parks instead of springing back */
+const SWIPE_GONE = 150;   /* past this, it deletes without asking */
+let openRow = null;
+
+function closeOpenRow() {
+  if (openRow && openRow._close) openRow._close();
+  openRow = null;
+}
+
 function attachSwipe(li, face, it) {
   let sx = 0, sy = 0, dx = 0, tracking = false, axis = '', moved = false;
-  const settle = () => { face.style.transition = ''; face.style.transform = ''; li.classList.remove('swiping'); };
+  const settle = () => { face.style.transition = ''; face.style.transform = ''; li.classList.remove('swiping', 'open'); };
+  const park = () => {
+    face.style.transition = 'transform .18s ease-out';
+    face.style.transform = `translateX(-${SWIPE_PARK}px)`;
+    li.classList.remove('swiping');
+    li.classList.add('open');
+    openRow = li;
+  };
+  li._close = () => { face.style.transition = 'transform .18s ease-out'; settle(); };
 
   face.addEventListener('pointerdown', e => {
     if (e.pointerType === 'mouse' && e.button !== 0) return;
-    sx = e.clientX; sy = e.clientY; dx = 0; tracking = true; axis = ''; moved = false;
+    if (openRow && openRow !== li) closeOpenRow();
+    dx = li.classList.contains('open') ? -SWIPE_PARK : 0;
+    sx = e.clientX - dx; sy = e.clientY; tracking = true; axis = ''; moved = false;
     face.style.transition = 'none';
   });
   face.addEventListener('pointermove', e => {
@@ -730,17 +822,23 @@ function attachSwipe(li, face, it) {
       li.classList.add('swiping');
       try { face.setPointerCapture(e.pointerId); } catch (err) { /* older browsers */ }
     }
-    dx = Math.max(-170, Math.min(0, mx));
-    if (dx < -6) moved = true;
+    dx = Math.max(-170, Math.min(170, mx));
+    if (Math.abs(dx) > 6) moved = true;
+    li.classList.toggle('dir-del', dx < 0);
+    li.classList.toggle('dir-have', dx > 0);
     face.style.transform = `translateX(${dx}px)`;
   });
   const release = () => {
     if (!tracking) return;
     tracking = false;
     face.style.transition = 'transform .18s ease-out';
-    if (dx < -92) {
+    if (dx < -SWIPE_GONE) {
       face.style.transform = 'translateX(-110%)';
       setTimeout(() => removeItem(it.id, true), 150);
+    } else if (dx < -SWIPE_SNAP) park();
+    else if (dx > SWIPE_SNAP) {
+      face.style.transform = 'translateX(110%)';
+      setTimeout(() => shelveItem(it.id), 150);
     } else settle();
   };
   face.addEventListener('pointerup', release);
@@ -828,6 +926,16 @@ function fillPanel(panel, it) {
 }
 
 function learn(it) { store.learned[normalize(it.name)] = { aisle: it.aisle, groups: it.groups.slice() }; }
+/* "I have this already" — off the list, onto the shelf, and dishes stop
+   asking for it until you say you have run out. */
+function shelveItem(id) {
+  const it = listItems().find(x => x.id === id);
+  if (!it) return;
+  it.have = true; it.got = false;
+  save(); renderList();
+  toast(`${it.name} → Already have`, 'Undo', () => { it.have = false; save(); renderList(); });
+}
+
 function removeItem(id, undoable) {
   const items = listItems();
   const at = items.findIndex(i => i.id === id);
@@ -858,10 +966,12 @@ function openSheet(dish, ingredients) {
     const cls = classify(name);
     const id = cls.food ? cls.food.id : normalize(name);
     const staple = (cls.aisle === 'pantry' || cls.aisle === 'spice') && !cls.groups.length;
+    const mine = listItems().find(i => (i.foodId || normalize(i.name)) === id);
+    const shelved = !!(mine && mine.have);
     return {
-      raw, name, qty, cls, staple,
-      onList: listItems().some(i => (i.foodId || normalize(i.name)) === id),
-      on: known ? !skip.has(raw) : !staple,
+      raw, name, qty, cls, staple, shelved,
+      onList: !!mine && !mine.have,
+      on: known ? !skip.has(raw) : !(staple || shelved),
     };
   });
 
@@ -884,10 +994,9 @@ function drawSheet() {
     line.append(box);
     const mid = el('span', 'smid');
     mid.append(el('b', null, r.name));
-    const bits = [];
-    const alt = otherName(r.cls.food, r.name);
-    if (alt) bits.push(alt);
-    if (r.onList) bits.push('already on the list');
+    const bits = otherNames(r.cls.food, r.name);
+    if (r.shelved) bits.push('on your Already have shelf');
+    else if (r.onList) bits.push('already on the list');
     else if (r.staple) bits.push('you probably have this');
     if (bits.length) mid.append(el('i', null, bits.join(' · ')));
     line.append(mid);
@@ -908,12 +1017,58 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('#sheet
 $('#sheetAdd').addEventListener('click', () => {
   const take = sheetRows.filter(r => r.on);
   if (!take.length) return;
-  for (const r of take) addToList(r.raw, sheetDish, store.settings.store);
+  for (const r of take) {
+    const added = addToList(r.raw, sheetDish, store.settings.store);
+    if (added && added.have) added.have = false;   /* you asked for it, so you need it */
+  }
   /* remember what you said you already had */
   store.settings.dishSkip[sheetDish] = sheetRows.filter(r => !r.on).map(r => r.raw);
   save(); renderList(); closeSheet();
   toast(`${take.length} on the list`);
 });
+
+/* ── what did it come to? ──────────────────────────────────
+   Asked once, at the till, where you know the number. Skipping is free and
+   the run is already recorded either way. */
+let costRun = null, costBought = 0;
+
+function openCost(run, bought) {
+  costRun = run; costBought = bought;
+  const shop = STORE_BY_ID[run.store];
+  $('#costSub').textContent = `${shop ? shop.name : 'Everywhere'} · ${bought} item${bought === 1 ? '' : 's'}`;
+  $('#costInput').value = run.cost ? String(run.cost) : '';
+  $('#cost').hidden = false;
+  document.body.style.overflow = 'hidden';
+  setTimeout(() => $('#costInput').focus(), 80);
+}
+function closeCost(saved) {
+  $('#cost').hidden = true;
+  document.body.style.overflow = '';
+  const run = costRun;
+  costRun = null;
+  if (!run) return;
+  renderList(); renderSetup();
+  if (!saved) {
+    toast(`${costBought} bought · fresh list ready`, 'Undo', () => {
+      undoRun(run, listItems().filter(inScope));
+      renderList(); renderSetup();
+    });
+  }
+}
+function saveCost() {
+  if (!costRun) return closeCost();
+  const v = Math.max(0, +$('#costInput').value || 0);
+  costRun.cost = v;
+  save();
+  const msg = v ? `${money(v)} logged · fresh list ready` : 'Fresh list ready';
+  const run = costRun;
+  closeCost(true);
+  toast(msg, 'Undo', () => { undoRun(run, listItems().filter(inScope)); renderList(); renderSetup(); });
+}
+$('#costSave').addEventListener('click', saveCost);
+$('#costInput').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); saveCost(); } });
+$('#costSkip').addEventListener('click', () => closeCost(false));
+$('#costBack').addEventListener('click', () => closeCost(false));
 
 /* a dish typed or tapped goes through the picker; anything else is an item */
 function dishFor(text) {
@@ -930,7 +1085,9 @@ function submitAdd() {
   const typed = input.value.trim();
   if (!typed) return;
 
-  const dish = dishFor(typed);
+  /* a comma-separated list is a list, however many foods it names */
+  const single = typed.split(/[,，、;；\n]+/).filter(x => x.trim()).length === 1;
+  const dish = single ? dishFor(typed) : null;
   if (dish) {
     input.value = '';
     renderSuggests('');
@@ -967,8 +1124,8 @@ function renderSuggests(raw) {
   }
   for (const f of FOOD_LIST) {
     if (hits.length >= 8) break;
-    if (f.en.concat(f.zh).some(n => normalize(n).includes(t))) {
-      hits.push({ label: hasCJK(raw) ? (f.zh[0] || f.en[0]) : f.en[0], sub: AISLE_BY_ID[f.aisle].zh });
+    if (f.en.concat(f.zh, f.fr || []).some(n => normalize(n).includes(t))) {
+      hits.push({ label: hasCJK(raw) ? (f.zh[0] || f.en[0]) : f.en[0], sub: f.fr || AISLE_BY_ID[f.aisle].zh });
     }
   }
   for (const h of hits) {
@@ -992,10 +1149,8 @@ $('#doneBtn').addEventListener('click', () => {
   const n = finishRun(f, scoped);
   const run = store.runs[0];
   renderList();
-  toast(n ? `${n} bought · fresh list ready` : 'List reset', 'Undo', () => {
-    undoRun(run, listItems().filter(inScope));
-    renderList();
-  });
+  if (n) openCost(run, n);
+  else toast('List reset', 'Undo', () => { undoRun(run, listItems().filter(inScope)); renderList(); });
   window.scrollTo({ top: 0, behavior: 'smooth' });
 });
 
@@ -1511,8 +1666,16 @@ function renderSetup() {
 
   const runs = $('#runHistory');
   runs.innerHTML = '';
+  const m = spent(0), prev = spent(1);
+  if (m.shops || prev.shops) {
+    const sum = el('p', 'spendsum');
+    sum.append(el('b', null, money(m.total)));
+    sum.append(el('span', null, ` this month across ${m.shops} shop${m.shops === 1 ? '' : 's'}`));
+    if (prev.shops) sum.append(el('span', 'muted', ` · last month ${money(prev.total)} across ${prev.shops}`));
+    runs.append(sum);
+  }
   if (!store.runs.length) {
-    runs.append(el('p', 'sub', 'No finished shops yet. The Shopping done button on the list records them.'));
+    runs.append(el('p', 'sub', 'No finished shops yet. The Shopping done button on the list records them, and asks what they came to.'));
   } else {
     for (const r of store.runs.slice(0, 12)) {
       const line = el('div', 'runline');
@@ -1522,13 +1685,22 @@ function renderSetup() {
       line.append(tag);
       line.append(el('b', null, new Date(r.at).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })));
       line.append(el('span', 'muted', ` · ${r.got.length} of ${r.total} bought`));
+      const cost = btn('costbtn', r.cost ? money(r.cost) : 'add cost');
+      cost.addEventListener('click', () => {
+        const v = prompt('What did this shop come to?', r.cost ? String(r.cost) : '');
+        if (v === null) return;
+        r.cost = Math.max(0, +v || 0);
+        save(); renderSetup(); renderList();
+      });
+      line.append(cost);
       runs.append(line);
     }
   }
 
   $('#lexStats').textContent =
-    `${FOOD_LIST.length} foods and ${RECIPE_LIST.length} dishes, each answering to both its English and Chinese name. ` +
-    `Anything it does not know still goes on the list — it just lands under Other.`;
+    `${FOOD_LIST.length} foods and ${RECIPE_LIST.length} dishes. Every food answers to its English, ` +
+    `Chinese and French name — write pomme, 苹果 or apple and the same thing lands in the basket. ` +
+    `Anything it does not know still goes on the list, under Other.`;
 }
 
 $('#resetTargets').addEventListener('click', () => {

@@ -531,15 +531,15 @@ const RECIPES = [
    '500克 虾; 粉丝; 大蒜; 生抽; 葱'],
 
   /* the regulars */
-  ['sesame noodles,芝麻拌面,麻酱面,芝麻面',
+  ['sesame noodles,芝麻拌面,麻酱面,芝麻面,nouilles au sésame',
    '400g noodles; 芝麻酱; 生抽; 陈醋; 辣椒油; 香油; 大蒜; 葱; 1 黄瓜; 花生; 白糖'],
-  ['tuna rice bowl,金枪鱼饭,吞拿鱼饭',
+  ['tuna rice bowl,金枪鱼饭,吞拿鱼饭,bol de riz au thon',
    '2 canned tuna; 2杯 rice; 1 黄瓜; 1 牛油果; 蛋黄酱; 辣椒酱; 紫菜; 芝麻; 葱; 生抽'],
-  ['salmon soy bowl,三文鱼饭,酱油三文鱼',
+  ['salmon soy bowl,三文鱼饭,酱油三文鱼,bol de saumon au soja',
    '2 salmon; 2杯 rice; 生抽; 味淋; 香油; 1 牛油果; 1 黄瓜; 毛豆; 紫菜; 葱; 芝麻'],
-  ['sandwich,三明治',
+  ['sandwich,三明治,le sandwich',
    'bread; deli turkey; cheese; lettuce; 1 tomato; 1 牛油果; 蛋黄酱; mustard; pickle'],
-  ['marinated eggs,卤蛋,溏心蛋,酱油蛋',
+  ['marinated eggs,卤蛋,溏心蛋,酱油蛋,œufs marinés',
    '6 鸡蛋; 生抽; 味淋; 白糖; 大蒜; 葱; 干辣椒'],
 
   /* western + everyday */
@@ -616,3 +616,150 @@ const RECIPES = [
    it joins them. */
 const DEFAULT_FAVOURITES = ['sesame noodles', 'tuna rice bowl', 'salmon soy bowl', 'sandwich', 'marinated eggs'];
 const FAV_COLORS = ['#F0B429', '#FF6B6B', '#FF7BA0', '#3FA7DC', '#9B87E0', '#3FB27F', '#F08A3C', '#2FB5A6'];
+
+/* ── le français ────────────────────────────────────────────
+   Every food again, in French, keyed by its English name. Shown beside the
+   Chinese on the list and searchable like any other name — write "poulet"
+   and the chicken lands in the basket. Articles are part of the entry
+   because the gender is the half worth learning. */
+const FR = {
+  /* fruit */
+  'apple': 'la pomme', 'banana': 'la banane', 'orange': "l'orange", 'mandarin': 'la mandarine',
+  'grapefruit': 'le pamplemousse', 'lemon': 'le citron', 'lime': 'le citron vert', 'grape': 'le raisin',
+  'strawberry': 'la fraise', 'blueberry': 'la myrtille', 'raspberry': 'la framboise', 'blackberry': 'la mûre',
+  'watermelon': 'la pastèque', 'melon': 'le melon', 'pineapple': "l'ananas", 'mango': 'la mangue',
+  'peach': 'la pêche', 'pear': 'la poire', 'plum': 'la prune', 'cherry': 'la cerise',
+  'kiwi': 'le kiwi', 'pomegranate': 'la grenade', 'persimmon': 'le kaki', 'lychee': 'le litchi',
+  'longan': 'le longane', 'dragon fruit': 'le fruit du dragon', 'papaya': 'la papaye', 'guava': 'la goyave',
+  'apricot': "l'abricot", 'fig': 'la figue', 'coconut': 'la noix de coco', 'avocado': "l'avocat",
+  'red date': 'la jujube', 'raisin': 'le raisin sec', 'dried cranberry': 'la canneberge séchée',
+
+  /* légumes */
+  'tomato': 'la tomate', 'cherry tomato': 'la tomate cerise', 'cucumber': 'le concombre',
+  'carrot': 'la carotte', 'potato': 'la pomme de terre', 'sweet potato': 'la patate douce',
+  'onion': "l'oignon", 'bell pepper': 'le poivron', 'green pepper': 'le poivron vert',
+  'chili pepper': 'le piment', 'broccoli': 'le brocoli', 'cauliflower': 'le chou-fleur',
+  'cabbage': 'le chou', 'napa cabbage': 'le chou chinois', 'bok choy': 'le pak choï',
+  'baby bok choy': 'le petit pak choï', 'choy sum': 'le choy sum', 'chinese broccoli': 'le chou kale chinois',
+  'spinach': 'les épinards', 'lettuce': 'la laitue', 'romaine': 'la romaine', 'kale': 'le chou frisé',
+  'arugula': 'la roquette', 'celery': 'le céleri', 'asparagus': "l'asperge", 'zucchini': 'la courgette',
+  'eggplant': "l'aubergine", 'pumpkin': 'la citrouille', 'winter melon': "la courge d'hiver",
+  'bitter melon': 'le melon amer', 'luffa': 'la courge éponge', 'chayote': 'la chayote',
+  'green bean': 'le haricot vert', 'snow pea': 'le pois mange-tout', 'sugar snap pea': 'le pois croquant',
+  'pea': 'le petit pois', 'corn': 'le maïs', 'mushroom': 'le champignon', 'shiitake': 'le shiitaké',
+  'enoki': "l'énoki", 'king oyster mushroom': 'le pleurote du panicaut', 'oyster mushroom': 'le pleurote',
+  'wood ear': "l'oreille de Judas", 'bean sprout': 'le germe de soja', 'pea shoot': 'la pousse de pois',
+  'lotus root': 'la racine de lotus', 'bamboo shoot': 'la pousse de bambou', 'water chestnut': "la châtaigne d'eau",
+  'taro': 'le taro', 'chinese yam': "l'igname chinoise", 'daikon': 'le radis blanc', 'beetroot': 'la betterave',
+  'okra': 'le gombo', 'brussels sprout': 'le chou de Bruxelles', 'celtuce': 'la laitue asperge',
+  'amaranth greens': "l'amarante", 'garlic sprout': "la tige d'ail", 'chinese chives': 'la ciboule de Chine',
+  'watercress': 'le cresson', 'seaweed': "l'algue", 'kelp': 'le varech',
+  'pickled mustard greens': 'la moutarde marinée', 'pickle': 'le cornichon',
+  'preserved vegetable': 'le légume mariné', 'olive': "l'olive",
+
+  /* aromates */
+  'garlic': "l'ail", 'ginger': 'le gingembre', 'scallion': "l'oignon vert", 'shallot': "l'échalote",
+  'leek': 'le poireau', 'cilantro': 'la coriandre', 'parsley': 'le persil', 'basil': 'le basilic',
+  'mint': 'la menthe', 'rosemary': 'le romarin', 'thyme': 'le thym', 'dill': "l'aneth",
+  'lemongrass': 'la citronnelle',
+
+  /* viande */
+  'chicken': 'le poulet', 'chicken breast': 'le blanc de poulet', 'chicken thigh': 'la cuisse de poulet',
+  'chicken wing': "l'aile de poulet", 'whole chicken': 'le poulet entier', 'chicken feet': 'la patte de poulet',
+  'pork': 'le porc', 'pork belly': 'la poitrine de porc', 'pork loin': 'le filet de porc',
+  'ground pork': 'le porc haché', 'pork ribs': 'les côtes de porc', 'pork shoulder': "l'épaule de porc",
+  'beef': 'le bœuf', 'ground beef': 'le bœuf haché', 'steak': 'le steak', 'beef brisket': 'la poitrine de bœuf',
+  'beef shank': 'le jarret de bœuf', 'lamb': "l'agneau", 'lamb chop': "la côtelette d'agneau",
+  'duck': 'le canard', 'bacon': 'le bacon', 'sausage': 'la saucisse', 'ham': 'le jambon',
+  'deli turkey': 'la dinde tranchée', 'prosciutto': 'le jambon cru', 'salami': 'le salami',
+  'pork liver': 'le foie de porc', 'tripe': 'les tripes', 'meatball': 'la boulette de viande',
+
+  /* poisson */
+  'fish': 'le poisson', 'salmon': 'le saumon', 'tuna': 'le thon', 'cod': 'la morue',
+  'sea bass': 'le bar', 'tilapia': 'le tilapia', 'grass carp': "la carpe herbivore",
+  'crucian carp': 'le carassin', 'shrimp': 'la crevette', 'crab': 'le crabe', 'squid': 'le calmar',
+  'clam': 'la palourde', 'mussel': 'la moule', 'scallop': 'la coquille Saint-Jacques',
+  'oyster': "l'huître", 'dried shrimp': 'la crevette séchée', 'fish ball': 'la boulette de poisson',
+  'eel': "l'anguille",
+
+  /* œufs et laitages */
+  'egg': "l'œuf", 'quail egg': 'le œuf de caille', 'century egg': 'le œuf de cent ans',
+  'salted duck egg': 'le œuf de cane salé', 'milk': 'le lait', 'yogurt': 'le yaourt',
+  'greek yogurt': 'le yaourt grec', 'cheese': 'le fromage', 'cheddar': 'le cheddar',
+  'mozzarella': 'la mozzarella', 'parmesan': 'le parmesan', 'cream cheese': 'le fromage à la crème',
+  'cream': 'la crème', 'sour cream': 'la crème sure', 'butter': 'le beurre',
+  'condensed milk': 'le lait concentré', 'oat milk': "le lait d'avoine", 'almond milk': "le lait d'amande",
+
+  /* soja */
+  'tofu': 'le tofu', 'firm tofu': 'le tofu ferme', 'silken tofu': 'le tofu soyeux',
+  'fried tofu puff': 'le tofu frit', 'dried tofu': 'le tofu séché', 'tofu skin': 'la peau de tofu',
+  'tempeh': 'le tempeh', 'edamame': "l'édamame", 'soy milk': 'le lait de soja',
+
+  /* céréales */
+  'rice': 'le riz', 'jasmine rice': 'le riz jasmin', 'brown rice': 'le riz brun',
+  'glutinous rice': 'le riz gluant', 'quinoa': 'le quinoa', 'oats': "les flocons d'avoine",
+  'millet': 'le millet', 'barley': "l'orge", 'flour': 'la farine', 'noodles': 'les nouilles',
+  'ramen': 'le ramen', 'udon': "l'udon", 'rice noodles': 'les nouilles de riz',
+  'glass noodles': 'les vermicelles', 'pasta': 'les pâtes', 'penne': 'les penne',
+  'lasagna sheets': 'les feuilles de lasagne', 'couscous': 'le couscous',
+  'dumpling wrappers': 'les pâtes à raviolis', 'wonton wrappers': 'les pâtes à wonton',
+  'spring roll wrappers': 'les galettes de riz', 'tortilla': 'la tortilla',
+  'cereal': 'les céréales', 'breadcrumbs': 'la chapelure',
+
+  /* boulangerie */
+  'bread': 'le pain', 'whole wheat bread': 'le pain complet', 'toast': 'le pain de mie',
+  'steamed bun': 'le pain vapeur', 'bagel': 'le bagel', 'croissant': 'le croissant',
+  'pita': 'le pain pita', 'focaccia': 'la focaccia', 'cake': 'le gâteau',
+  'scallion pancake': "la crêpe à l'oignon vert",
+
+  /* légumineuses et noix */
+  'black bean': 'le haricot noir', 'kidney bean': 'le haricot rouge', 'chickpea': 'le pois chiche',
+  'lentil': 'la lentille', 'mung bean': 'le haricot mungo', 'red bean': 'le haricot azuki',
+  'soybean': 'le soja', 'peanut': "l'arachide", 'almond': "l'amande", 'walnut': 'la noix',
+  'cashew': 'la noix de cajou', 'pistachio': 'la pistache', 'pine nut': 'le pignon de pin',
+  'sesame seed': 'le sésame', 'sunflower seed': 'la graine de tournesol',
+  'pumpkin seed': 'la graine de courge', 'chia seed': 'la graine de chia',
+  'flaxseed': 'la graine de lin', 'peanut butter': "le beurre d'arachide",
+
+  /* épicerie */
+  'soy sauce': 'la sauce soja', 'dark soy sauce': 'la sauce soja noire', 'oyster sauce': "la sauce d'huître",
+  'vinegar': 'le vinaigre', 'black vinegar': 'le vinaigre noir', 'cooking wine': 'le vin de cuisine',
+  'sesame oil': 'le huile de sésame', 'cooking oil': "l'huile", 'olive oil': "l'huile d'olive",
+  'salt': 'le sel', 'sugar': 'le sucre', 'rock sugar': 'le sucre candi', 'brown sugar': 'la cassonade',
+  'honey': 'le miel', 'chicken bouillon': 'le bouillon de poulet', 'doubanjiang': 'la pâte de fèves pimentée',
+  'sweet bean sauce': 'la sauce de soja sucrée', 'hoisin sauce': 'la sauce hoisin',
+  'chili oil': 'le huile pimentée', 'chili sauce': 'la sauce piquante', 'ketchup': 'le ketchup',
+  'mayonnaise': 'la mayonnaise', 'mustard': 'la moutarde', 'fish sauce': 'la sauce de poisson',
+  'mirin': 'le mirin', 'furikake': 'le furikake', 'curry paste': 'la pâte de curry',
+  'tomato paste': 'le concentré de tomate', 'canned tomatoes': 'les tomates en conserve',
+  'coconut milk': 'le lait de coco', 'stock': 'le bouillon', 'sesame paste': 'la pâte de sésame',
+  'fermented black beans': 'les haricots noirs fermentés', 'fermented tofu': 'le tofu fermenté',
+  'pickled chili': 'le piment mariné', 'cornstarch': 'la fécule de maïs',
+  'potato starch': 'la fécule de pomme de terre', 'baking powder': 'la levure chimique',
+  'yeast': 'la levure', 'vanilla extract': "l'extrait de vanille", 'jam': 'la confiture',
+  'maple syrup': "le sirop d'érable",
+
+  /* épices */
+  'black pepper': 'le poivre noir', 'white pepper': 'le poivre blanc',
+  'sichuan peppercorn': 'le poivre du Sichuan', 'star anise': "l'anis étoilé", 'cinnamon': 'la cannelle',
+  'clove': 'le clou de girofle', 'fennel seed': 'la graine de fenouil', 'cumin': 'le cumin',
+  'chili flakes': 'le piment en flocons', 'five spice powder': 'le cinq-épices',
+  'thirteen spice': 'le treize-épices', 'bay leaf': 'la feuille de laurier', 'dried chili': 'le piment séché',
+  'turmeric': 'le curcuma', 'paprika': 'le paprika', 'oregano': "l'origan", 'curry powder': 'le curry en poudre',
+  'dried shiitake': 'le shiitaké séché', 'goji berry': 'la baie de goji',
+
+  /* surgelés */
+  'frozen dumplings': 'les raviolis surgelés', 'frozen peas': 'les petits pois surgelés',
+  'frozen berries': 'les fruits rouges surgelés', 'ice cream': 'la crème glacée',
+
+  /* boissons */
+  'water': "l'eau", 'sparkling water': "l'eau pétillante", 'tea': 'le thé', 'green tea': 'le thé vert',
+  'coffee': 'le café', 'orange juice': "le jus d'orange", 'juice': 'le jus', 'beer': 'la bière',
+  'wine': 'le vin', 'cola': 'le cola', 'milk tea': 'le thé au lait',
+
+  /* maison */
+  'paper towels': 'le papier essuie-tout', 'toilet paper': 'le papier toilette',
+  'dish soap': 'le liquide vaisselle', 'laundry detergent': 'la lessive', 'trash bags': 'les sacs poubelle',
+  'aluminium foil': "le papier d'aluminium", 'plastic wrap': 'le film alimentaire',
+  'sponge': "l'éponge", 'ziplock bags': 'les sacs à fermeture',
+};
