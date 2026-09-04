@@ -4,7 +4,9 @@ A day tracker built around one specific schedule — mine — with a weekly repo
 that answers three questions: **how close am I to my goal**, **what did the week
 actually look like**, and **what should I change next week**.
 
-No build step, no server, no account. Open `index.html` in a browser.
+No build step, no server, no account. Open `index.html` in a browser — or
+`etude-standalone.html`, which is the same app inlined into a single file you
+can move anywhere. Regenerate it with `node build.js` after editing any source.
 
 ## The schedule
 
@@ -67,6 +69,8 @@ Goals now and then; **Import JSON** restores a backup.
 | `index.html` | markup for the three tabs |
 | `styles.css` | tokens + layout, light and dark |
 | `app.js` | schedule model, storage, day editor, report and advice engine |
+| `build.js` | inlines the three into `etude-standalone.html` |
+| `etude-standalone.html` | generated — the whole app in one file |
 
 To change the schedule itself, edit `TEMPLATE` at the top of `app.js`; goals,
 bars, reports and advice all follow from it.
