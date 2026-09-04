@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Étude — daily schedule &amp; weekly report</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">Étude</div>
+  <nav class="tabs" id="tabs">
+    <button class="tab is-active" data-view="day">Day</button>
+    <button class="tab" data-view="week">Weekly report</button>
+    <button class="tab" data-view="settings">Goals</button>
+  </nav>
+</header>
+
+<main>
+
+<!-- ─────────────────────────── DAY ─────────────────────────── -->
+<section id="view-day" class="view is-active">
+
+  <div class="daynav">
+    <button class="icon" id="dayPrev" title="Previous day">&larr;</button>
+    <input type="date" id="dayPicker">
+    <button class="icon" id="dayNext" title="Next day">&rarr;</button>
+    <div class="spacer"></div>
+    <button class="chip" id="goToday">Today</button>
+    <button class="chip chip-accent" id="goYesterday">Edit yesterday</button>
+  </div>
+
+  <div class="dayhead">
+    <h1 id="dayTitle">—</h1>
+    <p class="sub" id="dayRel"></p>
+  </div>
+
+  <div class="card wakecard">
+    <div class="wakeleft">
+      <label for="wakeInput">Wake up</label>
+      <input type="time" id="wakeInput">
+      <span class="muted">target <b id="wakeTargetLabel">09:00</b></span>
+    </div>
+    <div id="wakeVerdict" class="verdict"></div>
+  </div>
+
+  <div class="card">
+    <div class="cardhead">
+      <h2>Schedule</h2>
+      <div class="cardhead-actions">
+        <button class="ghost" id="fillPlanned">Mark all as planned</button>
+        <button class="ghost" id="clearDay">Clear day</button>
+      </div>
+    </div>
+    <ul class="blocks" id="blocks"></ul>
+    <div class="daytotals" id="dayTotals"></div>
+  </div>
+
+  <div class="card">
+    <div class="cardhead"><h2>Notes</h2></div>
+    <textarea id="dayNotes" rows="3" placeholder="What got in the way? What went well?"></textarea>
+  </div>
+
+</section>
+
+<!-- ─────────────────────────── WEEK ─────────────────────────── -->
+<section id="view-week" class="view">
+
+  <div class="daynav">
+    <button class="icon" id="weekPrev" title="Previous week">&larr;</button>
+    <span class="weeklabel" id="weekLabel">—</span>
+    <button class="icon" id="weekNext" title="Next week">&rarr;</button>
+    <div class="spacer"></div>
+    <button class="chip" id="goThisWeek">This week</button>
+    <button class="chip" id="goLastWeek">Last week</button>
+  </div>
+
+  <div class="card scorecard">
+    <div class="score">
+      <div class="scorering" id="scoreRing">
+        <span id="scorePct">0%</span>
+      </div>
+    </div>
+    <div class="scoretext">
+      <h1 id="scoreHeadline">—</h1>
+      <p class="sub" id="scoreSub"></p>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="cardhead"><h2>How close am I to my goal?</h2></div>
+    <div class="cats" id="weekCats"></div>
+  </div>
+
+  <div class="card">
+    <div class="cardhead"><h2>The week, day by day</h2></div>
+    <div class="grid" id="weekGrid"></div>
+    <div class="wakerow" id="weekWake"></div>
+  </div>
+
+  <div class="card advice">
+    <div class="cardhead">
+      <h2>What to do next week</h2>
+      <div class="cardhead-actions">
+        <button class="ghost" id="copyReport">Copy report</button>
+      </div>
+    </div>
+    <ol class="advicelist" id="adviceList"></ol>
+  </div>
+
+</section>
+
+<!-- ───────────────────────── SETTINGS ───────────────────────── -->
+<section id="view-settings" class="view">
+
+  <div class="card">
+    <div class="cardhead">
+      <h2>Weekly goals</h2>
+      <div class="cardhead-actions">
+        <button class="ghost" id="resetGoals">Reset to schedule</button>
+      </div>
+    </div>
+    <p class="sub">Hours per week. Defaults come from your daily schedule &times; 7 days.</p>
+    <div class="goals" id="goalInputs"></div>
+  </div>
+
+  <div class="card">
+    <div class="cardhead"><h2>Wake-up target</h2></div>
+    <input type="time" id="wakeTargetInput">
+  </div>
+
+  <div class="card">
+    <div class="cardhead"><h2>Your daily schedule</h2></div>
+    <ul class="tmpl" id="templateList"></ul>
+  </div>
+
+  <div class="card">
+    <div class="cardhead"><h2>Backup</h2></div>
+    <p class="sub">Everything lives in this browser only. Export now and then.</p>
+    <div class="cardhead-actions">
+      <button class="ghost" id="exportData">Export JSON</button>
+      <label class="ghost filelabel">Import JSON<input type="file" id="importData" accept="application/json" hidden></label>
+      <button class="ghost danger" id="wipeData">Erase everything</button>
+    </div>
+  </div>
+
+</section>
+
+</main>
+
+<script src="app.js"></script>
+</body>
+</html>
