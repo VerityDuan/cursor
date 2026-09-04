@@ -224,38 +224,87 @@ const blank = () => ({
 });
 
 let store;
+
+/* Anything that arrives — from storage, an import, or another device — is
+   run through here, so a half-written or older shape can never crash a
+   render. */
+function normalise(raw) {
+  const s = Object.assign(blank(), raw);
+  s.settings = Object.assign(blank().settings, raw.settings);
+  s.settings.targets = Object.assign(defaultTargets(), s.settings.targets);
+  s.learned = s.learned || {};
+  s.meals = s.meals || {};
+  s.runs = s.runs || [];
+  s.list = s.list || { items: [] };
+  s.list.items = s.list.items || [];
+  /* v1 kept a separate list per week — fold them all into the one list */
+  if (raw.weeks) {
+    for (const wk of Object.keys(raw.weeks)) {
+      for (const it of (raw.weeks[wk].items || [])) {
+        if (!s.list.items.some(x => (x.foodId || normalize(x.name)) === (it.foodId || normalize(it.name)))) {
+          s.list.items.push(Object.assign({ store: storeOf(it.foodId) }, it));
+        }
+      }
+    }
+    delete s.weeks;
+  }
+  for (const it of s.list.items) if (!it.store) it.store = storeOf(it.foodId);
+  return s;
+}
 function load() {
   try {
     const raw = JSON.parse(localStorage.getItem(STORE_KEY));
-    if (raw && (raw.list || raw.weeks)) {
-      store = Object.assign(blank(), raw);
-      store.settings = Object.assign(blank().settings, raw.settings);
-      store.settings.targets = Object.assign(defaultTargets(), store.settings.targets);
-      store.learned = store.learned || {};
-      store.meals = store.meals || {};
-      store.runs = store.runs || [];
-      store.list = store.list || { items: [] };
-      store.list.items = store.list.items || [];
-      /* v1 kept a separate list per week — fold them all into the one list */
-      if (raw.weeks) {
-        for (const wk of Object.keys(raw.weeks)) {
-          for (const it of (raw.weeks[wk].items || [])) {
-            if (!store.list.items.some(x => (x.foodId || normalize(x.name)) === (it.foodId || normalize(it.name)))) {
-              store.list.items.push(Object.assign({ store: storeOf(it.foodId) }, it));
-            }
-          }
-        }
-        delete store.weeks;
-      }
-      for (const it of store.list.items) if (!it.store) it.store = storeOf(it.foodId);
-      return;
-    }
+    if (raw && (raw.list || raw.weeks)) { store = normalise(raw); return; }
   } catch (e) { /* corrupt or blocked storage — start clean */ }
   store = blank();
 }
 function save() {
+  store.updatedAt = Date.now();
+  store.by = CLIENT_ID;
   try { localStorage.setItem(STORE_KEY, JSON.stringify(store)); }
   catch (e) { console.warn('Could not save — storage unavailable.', e); }
+  cloudPush();
+}
+
+/* ── the same basket on your other device ───────────────────
+   Everything above is complete on its own: the list lives in this browser.
+   Where the page happens to be served somewhere that offers a shared
+   document store — a published Artifact — the basket follows you from the
+   laptop you wrote it on to the phone in the shop. Anywhere else, every
+   line of this is inert. */
+const CLIENT_ID = Math.random().toString(36).slice(2, 9);
+const CLOUD_DOC = 'basket/state';
+let cloudDoc = null, cloudTimer = null;
+
+function cloudPush() {
+  if (!cloudDoc) return;
+  clearTimeout(cloudTimer);
+  cloudTimer = setTimeout(() => {
+    try { cloudDoc.set(JSON.parse(JSON.stringify(store))).catch(() => {}); }
+    catch (e) { /* offline or revoked — localStorage already has it */ }
+  }, 800);
+}
+
+/* null everywhere but a published Artifact — every caller branches on it */
+async function useCap(name) {
+  if (typeof window === 'undefined' || !window.claude || typeof window.claude.use !== 'function') return null;
+  try { return await window.claude.use(name); } catch (e) { return null; }
+}
+
+async function startCloud() {
+  const db = await useCap('db');
+  if (!db) return;
+  cloudDoc = db.doc(CLOUD_DOC);
+  cloudDoc.onSnapshot(snap => {
+    if (!snap.exists) { cloudPush(); return; }        /* first device seeds it */
+    const remote = snap.data();
+    if (!remote || remote.by === CLIENT_ID) return;   /* our own write, echoed */
+    if ((remote.updatedAt || 0) <= (store.updatedAt || 0)) return;  /* ours is newer */
+    store = normalise(JSON.parse(JSON.stringify(remote)));
+    try { localStorage.setItem(STORE_KEY, JSON.stringify(store)); } catch (e) { /* ignore */ }
+    renderAll();
+    toast('Updated from your other device');
+  }, () => { cloudDoc = null; });
 }
 const uid = () => Math.random().toString(36).slice(2, 9);
 
@@ -573,7 +622,6 @@ function renderList() {
     const head = el('div', 'aislehead');
     head.append(el('b', null, aisle.en));
     head.append(el('i', null, aisle.zh));
-    head.append(el('span', 'count', `${mine.filter(i => !i.got).length}`));
     sec.append(head);
 
     const ul = el('ul', 'items');
@@ -1335,11 +1383,21 @@ $('#resetTargets').addEventListener('click', () => {
   toast('Targets reset');
 });
 
-$('#exportData').addEventListener('click', () => {
-  const blob = new Blob([JSON.stringify(store, null, 2)], { type: 'application/json' });
+$('#exportData').addEventListener('click', async () => {
+  const json = JSON.stringify(store, null, 2);
+  const filename = `basket-${key(today())}.json`;
+  /* Hosted, the viewer has to be handed the file through the platform;
+     opened as a local file, an ordinary download link does it. */
+  const downloads = await useCap('downloads');
+  if (downloads) {
+    try { await downloads.save({ filename, data: json }); toast('Backup saved'); }
+    catch (e) { if (!e || e.code !== 'declined') toast('Could not save the backup'); }
+    return;
+  }
+  const blob = new Blob([json], { type: 'application/json' });
   const a = el('a');
   a.href = URL.createObjectURL(blob);
-  a.download = `basket-${key(today())}.json`;
+  a.download = filename;
   document.body.append(a); a.click(); a.remove();
   setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 });
@@ -1369,3 +1427,4 @@ $('#wipeData').addEventListener('click', () => {
 /* ── go ────────────────────────────────────────────────────── */
 load();
 renderAll();
+startCloud();

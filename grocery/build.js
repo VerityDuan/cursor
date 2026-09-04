@@ -22,3 +22,13 @@ if (html === before || html.includes('href="styles.css"') || html.includes('src=
 
 fs.writeFileSync(path.join(dir, 'basket-standalone.html'), html);
 console.log(`basket-standalone.html — ${(html.length / 1024).toFixed(1)} KB`);
+
+/* `node build.js --artifact <path>` writes the same page without the document
+   scaffolding, for hosts that supply their own <head> and <body>. */
+if (process.argv.includes('--artifact')) {
+  const out = process.argv[process.argv.indexOf('--artifact') + 1] || path.join(dir, 'basket-artifact.html');
+  const head = html.slice(html.indexOf('<title>'), html.indexOf('</head>'));
+  const body = html.slice(html.indexOf('<body>') + 6, html.lastIndexOf('</body>'));
+  fs.writeFileSync(out, head.trim() + '\n' + body.trim() + '\n');
+  console.log(`${out} — ${((head.length + body.length) / 1024).toFixed(1)} KB`);
+}

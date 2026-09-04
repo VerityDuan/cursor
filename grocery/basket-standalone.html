@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#FFF6EA">
-<title>菜篮 Basket — grocery list &amp; weekly balance</title>
+<title>菜篮 Basket</title>
 <style>
 /* ── tokens ─────────────────────────────────────────────── */
 :root {
@@ -22,7 +22,7 @@
   --tabh:     calc(60px + env(safe-area-inset-bottom, 0px));
 }
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme="light"]) {
     --bg:       #14120E;
     --panel:    #1E1B16;
     --ink:      #F5EFE3;
@@ -32,6 +32,15 @@
     --shadow:   0 2px 0 rgba(0,0,0,.3), 0 10px 24px rgba(0,0,0,.28);
   }
 }
+:root[data-theme="dark"] {
+    --bg:       #14120E;
+    --panel:    #1E1B16;
+    --ink:      #F5EFE3;
+    --ink-soft: #9A9285;
+    --line:     #322D25;
+    --accent:   #F5EFE3;
+    --shadow:   0 2px 0 rgba(0,0,0,.3), 0 10px 24px rgba(0,0,0,.28);
+  }
 
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 body {
@@ -77,7 +86,7 @@ main { max-width: 720px; margin: 0 auto; padding: 6px 14px calc(30px + var(--tab
 .tab.is-active { background: var(--ink); color: var(--bg); }
 
 h1 { font-size: 26px; margin: 0; letter-spacing: -.03em; font-weight: 800; line-height: 1.12; }
-h1.display { font-size: 30px; margin: 10px 2px 16px; }
+h1.display { font-size: 25px; margin: 6px 2px 14px; }
 h1.display em { font-style: italic; color: var(--ink-soft); }
 .sub { color: var(--ink-soft); margin: 6px 0 0; font-size: 14px; }
 .muted { color: var(--ink-soft); }
@@ -162,8 +171,8 @@ input:focus, select:focus { outline: 2px solid var(--ink); outline-offset: -2px;
 .favs::-webkit-scrollbar { display: none; }
 .favs:empty { display: none; }
 .fav {
-  flex: none; min-width: 116px; max-width: 168px; text-align: left;
-  border: 0; border-radius: 18px; padding: 13px 15px;
+  flex: none; min-width: 112px; max-width: 168px; text-align: left;
+  border: 0; border-radius: 16px; padding: 11px 14px;
   background: var(--c); color: #17140F;
   display: flex; flex-direction: column; gap: 2px;
   box-shadow: 0 3px 0 rgba(23,20,15,.13);
@@ -184,48 +193,44 @@ input:focus, select:focus { outline: 2px solid var(--ink); outline-offset: -2px;
 
 /* ── the sections ───────────────────────────────────────── */
 .aisle {
-  border-radius: var(--r); padding: 12px 12px 6px; margin: 12px 0;
+  border-radius: 16px; padding: 8px 12px 6px; margin: 8px 0;
   background: var(--panel);
   background: color-mix(in srgb, var(--c) 12%, var(--panel));
   border: 2px solid transparent;
   border-color: color-mix(in srgb, var(--c) 26%, transparent);
 }
-.aislehead { display: flex; align-items: baseline; gap: 7px; padding: 2px 4px 8px; }
-.aislehead b { font-size: 15px; font-weight: 800; letter-spacing: -.01em; }
-.aislehead i { font-style: normal; font-size: 12px; font-weight: 700; color: var(--ink-soft); }
-.aislehead .count {
-  margin-left: auto; font-size: 12.5px; font-weight: 800; color: #fff;
-  background: var(--c); border-radius: 999px; min-width: 24px; text-align: center; padding: 2px 8px;
-}
+.aislehead { display: flex; align-items: baseline; gap: 6px; padding: 2px 3px 5px; }
+.aislehead b { font-size: 12.5px; font-weight: 800; letter-spacing: .02em; text-transform: uppercase; color: var(--c); }
+.aislehead i { font-style: normal; font-size: 11.5px; font-weight: 700; color: var(--ink-soft); }
 .items { list-style: none; margin: 0; padding: 0; }
 .item {
-  display: grid; grid-template-columns: 34px 1fr auto 34px;
-  gap: 8px; align-items: center; padding: 3px 0;
+  display: grid; grid-template-columns: 28px 1fr auto 30px;
+  gap: 9px; align-items: center;
 }
 .tick {
-  width: 30px; height: 30px; border-radius: 50%; padding: 0;
+  width: 26px; height: 26px; border-radius: 50%; padding: 0;
   border: 2.5px solid color-mix(in srgb, var(--c) 55%, var(--line));
   background: var(--panel); position: relative;
 }
 .tick.on { background: var(--c); border-color: var(--c); }
 .tick.on::after {
-  content: ""; position: absolute; left: 8px; top: 4px;
-  width: 7px; height: 13px; border: 2.5px solid #fff;
+  content: ""; position: absolute; left: 7px; top: 3px;
+  width: 6px; height: 11px; border: 2.5px solid #fff;
   border-top: 0; border-left: 0; transform: rotate(42deg);
 }
 .ibody {
-  border: 0; background: transparent; text-align: left; padding: 9px 0;
-  display: flex; flex-direction: column; gap: 1px; min-width: 0;
+  border: 0; background: transparent; text-align: left; padding: 7px 0;
+  display: flex; flex-direction: column; gap: 0; min-width: 0;
 }
-.ibody .nm { font-size: 16px; font-weight: 700; letter-spacing: -.01em; }
-.ibody .sub { font-size: 11.5px; color: var(--ink-soft); font-weight: 600; margin: 0;
+.ibody .nm { font-size: 15px; font-weight: 700; letter-spacing: -.01em; }
+.ibody .sub { font-size: 11px; color: var(--ink-soft); font-weight: 600; margin: 0;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .qtytag {
   font-size: 12px; font-weight: 800; color: var(--ink-soft);
   background: var(--panel); border-radius: 999px; padding: 3px 9px; white-space: nowrap;
 }
 .edit {
-  width: 30px; height: 30px; border-radius: 50%; border: 0;
+  width: 28px; height: 28px; border-radius: 50%; border: 0;
   background: transparent; color: var(--ink-soft); font-size: 17px; line-height: 1;
 }
 .edit:active { background: var(--panel); }
@@ -404,8 +409,7 @@ input:focus, select:focus { outline: 2px solid var(--ink); outline-offset: -2px;
 }
 
 @media (min-width: 700px) {
-  h1.display { font-size: 38px; }
-  .item { grid-template-columns: 38px 1fr auto 38px; }
+  h1.display { font-size: 32px; }
 }
 
 </style>
@@ -1433,38 +1437,87 @@ const blank = () => ({
 });
 
 let store;
+
+/* Anything that arrives — from storage, an import, or another device — is
+   run through here, so a half-written or older shape can never crash a
+   render. */
+function normalise(raw) {
+  const s = Object.assign(blank(), raw);
+  s.settings = Object.assign(blank().settings, raw.settings);
+  s.settings.targets = Object.assign(defaultTargets(), s.settings.targets);
+  s.learned = s.learned || {};
+  s.meals = s.meals || {};
+  s.runs = s.runs || [];
+  s.list = s.list || { items: [] };
+  s.list.items = s.list.items || [];
+  /* v1 kept a separate list per week — fold them all into the one list */
+  if (raw.weeks) {
+    for (const wk of Object.keys(raw.weeks)) {
+      for (const it of (raw.weeks[wk].items || [])) {
+        if (!s.list.items.some(x => (x.foodId || normalize(x.name)) === (it.foodId || normalize(it.name)))) {
+          s.list.items.push(Object.assign({ store: storeOf(it.foodId) }, it));
+        }
+      }
+    }
+    delete s.weeks;
+  }
+  for (const it of s.list.items) if (!it.store) it.store = storeOf(it.foodId);
+  return s;
+}
 function load() {
   try {
     const raw = JSON.parse(localStorage.getItem(STORE_KEY));
-    if (raw && (raw.list || raw.weeks)) {
-      store = Object.assign(blank(), raw);
-      store.settings = Object.assign(blank().settings, raw.settings);
-      store.settings.targets = Object.assign(defaultTargets(), store.settings.targets);
-      store.learned = store.learned || {};
-      store.meals = store.meals || {};
-      store.runs = store.runs || [];
-      store.list = store.list || { items: [] };
-      store.list.items = store.list.items || [];
-      /* v1 kept a separate list per week — fold them all into the one list */
-      if (raw.weeks) {
-        for (const wk of Object.keys(raw.weeks)) {
-          for (const it of (raw.weeks[wk].items || [])) {
-            if (!store.list.items.some(x => (x.foodId || normalize(x.name)) === (it.foodId || normalize(it.name)))) {
-              store.list.items.push(Object.assign({ store: storeOf(it.foodId) }, it));
-            }
-          }
-        }
-        delete store.weeks;
-      }
-      for (const it of store.list.items) if (!it.store) it.store = storeOf(it.foodId);
-      return;
-    }
+    if (raw && (raw.list || raw.weeks)) { store = normalise(raw); return; }
   } catch (e) { /* corrupt or blocked storage — start clean */ }
   store = blank();
 }
 function save() {
+  store.updatedAt = Date.now();
+  store.by = CLIENT_ID;
   try { localStorage.setItem(STORE_KEY, JSON.stringify(store)); }
   catch (e) { console.warn('Could not save — storage unavailable.', e); }
+  cloudPush();
+}
+
+/* ── the same basket on your other device ───────────────────
+   Everything above is complete on its own: the list lives in this browser.
+   Where the page happens to be served somewhere that offers a shared
+   document store — a published Artifact — the basket follows you from the
+   laptop you wrote it on to the phone in the shop. Anywhere else, every
+   line of this is inert. */
+const CLIENT_ID = Math.random().toString(36).slice(2, 9);
+const CLOUD_DOC = 'basket/state';
+let cloudDoc = null, cloudTimer = null;
+
+function cloudPush() {
+  if (!cloudDoc) return;
+  clearTimeout(cloudTimer);
+  cloudTimer = setTimeout(() => {
+    try { cloudDoc.set(JSON.parse(JSON.stringify(store))).catch(() => {}); }
+    catch (e) { /* offline or revoked — localStorage already has it */ }
+  }, 800);
+}
+
+/* null everywhere but a published Artifact — every caller branches on it */
+async function useCap(name) {
+  if (typeof window === 'undefined' || !window.claude || typeof window.claude.use !== 'function') return null;
+  try { return await window.claude.use(name); } catch (e) { return null; }
+}
+
+async function startCloud() {
+  const db = await useCap('db');
+  if (!db) return;
+  cloudDoc = db.doc(CLOUD_DOC);
+  cloudDoc.onSnapshot(snap => {
+    if (!snap.exists) { cloudPush(); return; }        /* first device seeds it */
+    const remote = snap.data();
+    if (!remote || remote.by === CLIENT_ID) return;   /* our own write, echoed */
+    if ((remote.updatedAt || 0) <= (store.updatedAt || 0)) return;  /* ours is newer */
+    store = normalise(JSON.parse(JSON.stringify(remote)));
+    try { localStorage.setItem(STORE_KEY, JSON.stringify(store)); } catch (e) { /* ignore */ }
+    renderAll();
+    toast('Updated from your other device');
+  }, () => { cloudDoc = null; });
 }
 const uid = () => Math.random().toString(36).slice(2, 9);
 
@@ -1782,7 +1835,6 @@ function renderList() {
     const head = el('div', 'aislehead');
     head.append(el('b', null, aisle.en));
     head.append(el('i', null, aisle.zh));
-    head.append(el('span', 'count', `${mine.filter(i => !i.got).length}`));
     sec.append(head);
 
     const ul = el('ul', 'items');
@@ -2544,11 +2596,21 @@ $('#resetTargets').addEventListener('click', () => {
   toast('Targets reset');
 });
 
-$('#exportData').addEventListener('click', () => {
-  const blob = new Blob([JSON.stringify(store, null, 2)], { type: 'application/json' });
+$('#exportData').addEventListener('click', async () => {
+  const json = JSON.stringify(store, null, 2);
+  const filename = `basket-${key(today())}.json`;
+  /* Hosted, the viewer has to be handed the file through the platform;
+     opened as a local file, an ordinary download link does it. */
+  const downloads = await useCap('downloads');
+  if (downloads) {
+    try { await downloads.save({ filename, data: json }); toast('Backup saved'); }
+    catch (e) { if (!e || e.code !== 'declined') toast('Could not save the backup'); }
+    return;
+  }
+  const blob = new Blob([json], { type: 'application/json' });
   const a = el('a');
   a.href = URL.createObjectURL(blob);
-  a.download = `basket-${key(today())}.json`;
+  a.download = filename;
   document.body.append(a); a.click(); a.remove();
   setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 });
@@ -2578,6 +2640,7 @@ $('#wipeData').addEventListener('click', () => {
 /* ── go ────────────────────────────────────────────────────── */
 load();
 renderAll();
+startCloud();
 
 </script>
 </body>
